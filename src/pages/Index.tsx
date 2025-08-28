@@ -37,8 +37,7 @@ const Index = () => {
             </div>
             
             <IdentitySearchField onIdentitySelected={handleIdentitySelected} className="w-full" />
-          </div> : <div className="flex-1 flex flex-col space-y-6 pt-2 overflow-hidden">
-            <IdentityDisplay identity={selectedIdentity} />
+          </div> : <div className="flex-1 flex flex-col overflow-hidden">
             <PaymentForm recipient={selectedIdentity} onPaymentSent={() => {
           setSelectedIdentity(null);
           toast({

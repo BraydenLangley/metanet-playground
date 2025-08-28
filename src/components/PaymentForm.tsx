@@ -24,7 +24,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSe
   const { toast } = useToast()
 
   const handleSendPayment = async () => {
-    if (!amount || parseFloat(amount) <= 0) {
+    if (!amount || parseInt(amount) <= 0) {
       toast({
         title: "Invalid Amount",
         description: "Please enter a valid amount greater than 0",
@@ -42,7 +42,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSe
         walletClient
       })
 
-      const amountInSats = Math.floor(parseFloat(amount) * 100000000) // Convert to satoshis
+      const amountInSats = parseInt(amount)
       const finalRecipientKey = recipient.identityKey
 
       await peerPayClient.sendLivePayment({ 
@@ -52,7 +52,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSe
 
       toast({
         title: "Payment Sent!",
-        description: `Successfully sent ${amount} BSV to ${recipient.name}`,
+        description: `Successfully sent ${amount} sats to ${recipient.name}`,
       })
 
       setAmount('')
@@ -82,14 +82,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSe
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="amount" className="text-sm text-muted-foreground">
-              Amount (BSV)
+              Amount (Satoshis)
             </Label>
             <Input
               id="amount"
               type="number"
-              step="0.00000001"
-              min="0"
-              placeholder="10"
+              step="1"
+              min="1"
+              placeholder="1000000"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="text-lg font-mono bg-background border-border h-12"

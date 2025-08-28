@@ -159,33 +159,33 @@ export const IdentitySearchField: React.FC<IdentitySearchFieldProps> = ({
   return (
     <div className={cn("relative w-full max-w-md", className)}>
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
         <Input
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Name, email, or identity key..."
-          className="pl-10 pr-4 h-12 text-base bg-card border-border/50 rounded-2xl focus:shadow-glow transition-smooth"
+          className="pl-12 pr-4 h-14 text-lg bg-card border-border/50 rounded-3xl focus:shadow-glow transition-smooth touch-manipulation"
         />
         {isLoading && (
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+            <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         )}
       </div>
 
 
       {showResults && (
-        <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-card border border-border/30 rounded-2xl shadow-lg overflow-hidden">
+        <div className="absolute top-full left-0 right-0 mt-3 z-50 bg-card border border-border/30 rounded-3xl shadow-lg overflow-hidden">
           {results.length > 0 ? (
             <div className="max-h-60 overflow-auto">
               {results.map((identity, index) => (
                 <div
                   key={`${identity.identityKey}-${index}`}
                   onClick={() => handleSelectIdentity(identity)}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-accent/30 cursor-pointer transition-colors border-b border-border/20 last:border-b-0"
+                  className="flex items-center gap-4 px-6 py-4 hover:bg-accent/30 cursor-pointer transition-colors border-b border-border/20 last:border-b-0 touch-manipulation min-h-[60px]"
                 >
-                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                    <User className="w-5 h-5 text-primary" />
+                  <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                    <User className="w-6 h-6 text-primary" />
                   </div>
                   
                   <div className="flex-1 min-w-0">

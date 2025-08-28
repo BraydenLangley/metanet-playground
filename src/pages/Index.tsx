@@ -32,7 +32,7 @@ const Index = () => {
       <main className="container mx-auto px-4 py-8 max-w-md">
         {!selectedIdentity ? <div className="space-y-8">
             <div className="text-center pt-12">
-              <h1 className="text-2xl font-bold gradient-text mb-2">PeerPay</h1>
+              <h1 className="text-2xl font-bold gradient-text mb-2">Pay a Friend</h1>
               <p className="text-muted-foreground">Search for someone to pay</p>
             </div>
             

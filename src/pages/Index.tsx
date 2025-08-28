@@ -6,7 +6,7 @@ import { DisplayableIdentity } from '@/types/identity'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Copy, ExternalLink, User, Zap, Database } from 'lucide-react'
+import { Copy, ExternalLink, User, Zap, Database, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 
@@ -15,66 +15,49 @@ const IdentityDisplay = React.memo<{
   identity: DisplayableIdentity
   onCopy: (text: string, label: string) => void
 }>(({ identity, onCopy }) => (
-  <Card className="card-elevated border-border/50 bg-card/80 backdrop-blur-sm">
-    <CardContent className="p-8">
-      <div className="flex items-start gap-6">
-        <Avatar className="w-20 h-20">
-          <AvatarImage src={identity.avatarURL} alt={identity.name} />
-          <AvatarFallback className="bg-primary/10 text-primary text-xl">
-            <User className="w-8 h-8" />
-          </AvatarFallback>
-        </Avatar>
+  <Card className="border border-border/50 bg-card">
+    <CardContent className="p-6">
+      <div className="flex items-start gap-4">
+        <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+          <User className="w-8 h-8 text-primary" />
+        </div>
         
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-3">
-            <h3 className="text-2xl font-bold text-foreground">
+            <h3 className="text-xl font-semibold text-foreground">
               {identity.name}
             </h3>
-            <Badge className="bg-primary/10 text-primary border-primary/20">
-              <Database className="w-3 h-3 mr-1" />
+            <Badge className="bg-violet-500/10 text-violet-400 border-violet-500/30 text-xs">
+              <CheckCircle className="w-3 h-3 mr-1" />
               Verified Identity
             </Badge>
           </div>
           
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Identity Key:</span>
-              <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
+              <span className="text-sm text-muted-foreground">Identity Key:</span>
+              <code className="text-sm font-mono bg-muted/50 px-2 py-1 rounded text-foreground">
                 {identity.abbreviatedKey}
               </code>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => onCopy(identity.identityKey, 'Identity key')}
-                className="h-6 w-6 p-0"
+                className="h-7 w-7 p-0 hover:bg-muted"
               >
                 <Copy className="w-3 h-3" />
               </Button>
             </div>
             
-            <div className="flex flex-wrap gap-2 pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onCopy(identity.identityKey, 'Full identity key')}
-                className="border-primary/20 hover:bg-primary/10"
-              >
-                <Copy className="w-4 h-4 mr-2" />
-                Copy Full Key
-              </Button>
-              
-              {identity.badgeClickURL && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(identity.badgeClickURL, '_blank')}
-                  className="border-primary/20 hover:bg-primary/10"
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Learn More
-                </Button>
-              )}
-            </div>
+            <Button
+              variant="outline" 
+              size="sm"
+              onClick={() => onCopy(identity.identityKey, 'Full identity key')}
+              className="mt-3 text-xs"
+            >
+              <Copy className="w-3 h-3 mr-2" />
+              Copy Full Key
+            </Button>
           </div>
         </div>
       </div>
@@ -135,7 +118,7 @@ const Index = () => {
           </div>
 
           {/* Search Section */}
-          <div className="flex justify-center mb-12">
+          <div className="flex justify-center mb-8">
             <IdentitySearchField 
               onIdentitySelected={handleIdentitySelected}
               className="w-full max-w-lg"
@@ -144,7 +127,7 @@ const Index = () => {
 
           {/* Selected Identity Display */}
           {selectedIdentity && (
-            <div className="space-y-6">
+            <div className="space-y-4 max-w-2xl mx-auto">
               <IdentityDisplay 
                 identity={selectedIdentity}
                 onCopy={copyToClipboard}

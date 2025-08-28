@@ -181,33 +181,27 @@ export const IdentitySearchField: React.FC<IdentitySearchFieldProps> = ({
       )}
 
       {showResults && (
-        <Card className="absolute top-full left-0 right-0 mt-2 z-50 p-0 overflow-hidden card-elevated border-border/50">
+        <Card className="absolute top-full left-0 right-0 mt-2 z-50 p-0 overflow-hidden bg-card border border-border/50 shadow-lg">
           {results.length > 0 ? (
             <div className="max-h-80 overflow-auto">
               {results.map((identity, index) => (
                 <div
                   key={`${identity.identityKey}-${index}`}
                   onClick={() => handleSelectIdentity(identity)}
-                  className="flex items-center gap-3 p-4 hover:bg-accent cursor-pointer transition-smooth border-b border-border/30 last:border-b-0"
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-accent/50 cursor-pointer transition-colors border-b border-border/20 last:border-b-0"
                 >
-                  <Avatar className="w-10 h-10">
-                    <AvatarImage src={identity.avatarURL} alt={identity.name} />
-                    <AvatarFallback className="bg-primary/10 text-primary">
-                      <User className="w-4 h-4" />
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                    <User className="w-4 h-4 text-primary" />
+                  </div>
                   
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-foreground truncate">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="font-medium text-foreground truncate text-sm">
                         {identity.name}
                       </p>
-                      {identity.badgeLabel && (
-                        <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Verified
-                        </Badge>
-                      )}
+                      <Badge variant="outline" className="text-xs bg-violet-500/10 text-violet-400 border-violet-500/30 px-1.5 py-0">
+                        Verified
+                      </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground font-mono truncate">
                       {identity.abbreviatedKey}
@@ -218,9 +212,9 @@ export const IdentitySearchField: React.FC<IdentitySearchFieldProps> = ({
             </div>
           ) : (
             !isLoading && searchTerm.length > 1 && (
-              <div className="p-8 text-center text-muted-foreground">
-                <User className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p>No identities found for "{searchTerm}"</p>
+              <div className="p-6 text-center text-muted-foreground">
+                <User className="w-6 h-6 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No identities found</p>
               </div>
             )
           )}

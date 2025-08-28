@@ -70,52 +70,52 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSe
   }
 
   return (
-    <Card className="card-elevated border-border/50 bg-card/80 backdrop-blur-sm">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-foreground">
-          <Send className="w-5 h-5" />
-          Send Payment to {recipient.name}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="amount" className="text-sm font-medium text-muted-foreground">
-            Amount (BSV)
-          </Label>
-          <Input
-            id="amount"
-            type="number"
-            step="0.00000001"
-            min="0"
-            placeholder="0.00000000"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="bg-background/50 border-border/50"
-          />
-        </div>
-        
-        <div className="text-sm text-muted-foreground">
-          <p><strong>Recipient:</strong> {recipient.name}</p>
-          <p><strong>Identity Key:</strong> <code className="text-xs font-mono bg-muted px-1 py-0.5 rounded">{recipient.abbreviatedKey}</code></p>
+    <Card className="border border-border/50 bg-card">
+      <CardContent className="p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Send className="w-5 h-5 text-foreground" />
+          <h3 className="text-lg font-semibold text-foreground">
+            Send Payment to {recipient.name}
+          </h3>
         </div>
 
-        <Button 
-          onClick={handleSendPayment}
-          disabled={isLoading || !amount}
-          className="w-full bg-gradient-primary hover:opacity-90 text-white"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Sending Payment...
-            </>
-          ) : (
-            <>
-              <Send className="w-4 h-4 mr-2" />
-              Send Payment
-            </>
-          )}
-        </Button>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="amount" className="text-sm text-muted-foreground">
+              Amount (BSV)
+            </Label>
+            <Input
+              id="amount"
+              type="number"
+              step="0.00000001"
+              min="0"
+              placeholder="10"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="text-lg font-mono bg-background border-border h-12"
+            />
+          </div>
+          
+          <div className="space-y-1 text-sm text-muted-foreground">
+            <p><span className="font-medium">Recipient:</span> {recipient.name}</p>
+            <p><span className="font-medium">Identity Key:</span> <code className="text-xs font-mono">{recipient.abbreviatedKey}</code></p>
+          </div>
+
+          <Button 
+            onClick={handleSendPayment}
+            disabled={isLoading || !amount}
+            className="w-full bg-violet-600 hover:bg-violet-700 text-white h-12 text-base font-medium"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Sending Payment...
+              </>
+            ) : (
+              'Send Payment'
+            )}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   )

@@ -64,15 +64,15 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSe
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="lg" onClick={onBack} className="p-3 rounded-full">
-          <ArrowLeft className="w-6 h-6" />
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="sm" onClick={onBack} className="p-2 rounded-full shrink-0">
+          <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h2 className="text-xl font-semibold">Send to {recipient.name}</h2>
+        <h2 className="text-lg font-semibold truncate">Send to {recipient.name}</h2>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         <Input
           type="number"
           step="1"
@@ -80,14 +80,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSe
           placeholder="Amount in sats"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          className="text-3xl font-mono text-center h-20 text-foreground bg-card border-border/50 rounded-3xl touch-manipulation"
+          className="text-2xl font-mono text-center h-16 text-foreground bg-card border-border/50 rounded-2xl touch-manipulation"
           autoFocus
         />
 
         <Button 
           onClick={handleSendPayment}
           disabled={isLoading || !amount || parseInt(amount) <= 0}
-          className="w-full h-16 text-xl font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-3xl touch-manipulation"
+          className="w-full h-14 text-lg font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl touch-manipulation"
         >
           {isLoading ? (
             <>

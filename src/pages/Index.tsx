@@ -10,13 +10,13 @@ const IdentityDisplay = React.memo<{
   identity: DisplayableIdentity;
 }>(({
   identity
-}) => <div className="flex items-center gap-4 p-5 bg-card rounded-3xl border border-border/30">
-    <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center">
-      <User className="w-7 h-7 text-primary" />
+}) => <div className="flex items-center gap-3 p-4 bg-card rounded-2xl border border-border/30">
+    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+      <User className="w-6 h-6 text-primary" />
     </div>
-    <div>
-      <h3 className="font-semibold text-foreground text-lg">{identity.name}</h3>
-      <p className="text-base text-muted-foreground font-mono">{identity.abbreviatedKey}</p>
+    <div className="min-w-0 flex-1">
+      <h3 className="font-semibold text-foreground truncate">{identity.name}</h3>
+      <p className="text-sm text-muted-foreground font-mono truncate">{identity.abbreviatedKey}</p>
     </div>
   </div>);
 IdentityDisplay.displayName = 'IdentityDisplay';
@@ -28,12 +28,12 @@ const Index = () => {
   const handleIdentitySelected = useCallback((identity: DisplayableIdentity) => {
     setSelectedIdentity(identity);
   }, []);
-  return <div className="min-h-screen bg-gradient-background">
-      <main className="container mx-auto px-6 py-6 max-w-sm">
+  return <div className="min-h-screen bg-gradient-background overflow-x-hidden">
+      <main className="container mx-auto px-4 py-4 max-w-sm w-full">
         {!selectedIdentity ? <div className="space-y-6">
-            <div className="text-center pt-8">
-              <h1 className="text-3xl font-bold gradient-text mb-3">Pay a Friend</h1>
-              <p className="text-muted-foreground text-lg">Search for someone to pay</p>
+            <div className="text-center pt-6">
+              <h1 className="text-2xl font-bold gradient-text mb-2">Pay a Friend</h1>
+              <p className="text-muted-foreground">Search for someone to pay</p>
             </div>
             
             <IdentitySearchField onIdentitySelected={handleIdentitySelected} className="w-full" />

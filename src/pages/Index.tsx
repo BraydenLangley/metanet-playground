@@ -28,8 +28,8 @@ const Index = () => {
   const handleIdentitySelected = useCallback((identity: DisplayableIdentity) => {
     setSelectedIdentity(identity);
   }, []);
-  return <div className="h-screen bg-gradient-background overflow-hidden overscroll-none touch-none">
-      <main className="h-full flex flex-col px-4 py-4 max-w-sm w-full mx-auto">
+  return <div className="h-dvh bg-gradient-background overflow-hidden overscroll-none touch-none relative">
+      <main className="h-full flex flex-col px-4 py-4 max-w-sm w-full mx-auto relative z-10">
         {!selectedIdentity ? <div className="flex-1 flex flex-col justify-center space-y-6">
             <div className="text-center">
               <h1 className="text-2xl font-bold gradient-text mb-2">Pay a Friend</h1>

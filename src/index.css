@@ -112,10 +112,25 @@
     @apply border-border;
   }
 
+  
+  html, body, #root {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    top: 0;
+    left: 0;
+  }
+  
   body {
     @apply bg-background text-foreground;
     background: var(--gradient-background);
     min-height: 100vh;
+    min-height: 100dvh;
+    position: fixed;
+    width: 100%;
+    overflow: hidden;
   }
 }
 

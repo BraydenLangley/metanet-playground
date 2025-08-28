@@ -1,9 +1,7 @@
 import React, { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Send, Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2 } from 'lucide-react'
 import { DisplayableIdentity } from '@/types/identity'
 import { useToast } from '@/hooks/use-toast'
 import { PeerPayClient } from '@bsv/message-box-client'
@@ -12,13 +10,14 @@ import { WalletClient } from '@bsv/sdk'
 interface PaymentFormProps {
   recipient: DisplayableIdentity
   onPaymentSent?: () => void
+  onBack?: () => void
 }
 
 const constants = {
   messageboxURL: 'https://messagebox.babbage.systems' // Update with actual URL
 }
 
-export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSent }) => {
+export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSent, onBack }) => {
   const [amount, setAmount] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
@@ -50,18 +49,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSe
         amount: amountInSats 
       })
 
-      toast({
-        title: "Payment Sent!",
-        description: `Successfully sent ${amount} sats to ${recipient.name}`,
-      })
-
+      toast({ description: `Sent ${amount} sats to ${recipient.name}` })
       setAmount('')
       onPaymentSent?.()
     } catch (error) {
       console.error('Payment failed:', error)
       toast({
-        title: "Payment Failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description: error instanceof Error ? error.message : "Payment failed",
         variant: "destructive"
       })
     } finally {
@@ -70,53 +64,41 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSe
   }
 
   return (
-    <Card className="border border-border/50 bg-card">
-      <CardContent className="p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Send className="w-5 h-5 text-foreground" />
-          <h3 className="text-lg font-semibold text-foreground">
-            Send Payment to {recipient.name}
-          </h3>
-        </div>
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="sm" onClick={onBack} className="p-2">
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <h2 className="text-lg font-semibold">Send to {recipient.name}</h2>
+      </div>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="amount" className="text-sm text-muted-foreground">
-              Amount (Satoshis)
-            </Label>
-            <Input
-              id="amount"
-              type="number"
-              step="1"
-              min="1"
-              placeholder="1000000"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="text-lg font-mono bg-background border-border h-12"
-            />
-          </div>
-          
-          <div className="space-y-1 text-sm text-muted-foreground">
-            <p><span className="font-medium">Recipient:</span> {recipient.name}</p>
-            <p><span className="font-medium">Identity Key:</span> <code className="text-xs font-mono">{recipient.abbreviatedKey}</code></p>
-          </div>
+      <div className="space-y-4">
+        <Input
+          type="number"
+          step="1"
+          min="1"
+          placeholder="Amount in sats"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          className="text-2xl font-mono text-center h-16 text-foreground bg-card border-border/50 rounded-2xl"
+          autoFocus
+        />
 
-          <Button 
-            onClick={handleSendPayment}
-            disabled={isLoading || !amount}
-            className="w-full bg-violet-600 hover:bg-violet-700 text-white h-12 text-base font-medium"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Sending Payment...
-              </>
-            ) : (
-              'Send Payment'
-            )}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+        <Button 
+          onClick={handleSendPayment}
+          disabled={isLoading || !amount || parseInt(amount) <= 0}
+          className="w-full h-14 text-lg font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              Sending...
+            </>
+          ) : (
+            `Send ${amount || '0'} sats`
+          )}
+        </Button>
+      </div>
+    </div>
   )
 }

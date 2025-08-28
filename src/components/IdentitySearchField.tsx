@@ -163,8 +163,8 @@ export const IdentitySearchField: React.FC<IdentitySearchFieldProps> = ({
         <Input
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search identities..."
-          className="pl-10 pr-4 transition-smooth focus:shadow-glow bg-card border-border"
+          placeholder="Name, email, or identity key..."
+          className="pl-10 pr-4 h-12 text-base bg-card border-border/50 rounded-2xl focus:shadow-glow transition-smooth"
         />
         {isLoading && (
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -173,36 +173,25 @@ export const IdentitySearchField: React.FC<IdentitySearchFieldProps> = ({
         )}
       </div>
 
-      {searchTime !== null && (
-        <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-          <Clock className="w-3 h-3" />
-          <span>Search completed in {searchTime.toFixed(0)}ms</span>
-        </div>
-      )}
 
       {showResults && (
-        <Card className="absolute top-full left-0 right-0 mt-2 z-50 p-0 overflow-hidden bg-card border border-border/50 shadow-lg">
+        <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-card border border-border/30 rounded-2xl shadow-lg overflow-hidden">
           {results.length > 0 ? (
-            <div className="max-h-80 overflow-auto">
+            <div className="max-h-60 overflow-auto">
               {results.map((identity, index) => (
                 <div
                   key={`${identity.identityKey}-${index}`}
                   onClick={() => handleSelectIdentity(identity)}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-accent/50 cursor-pointer transition-colors border-b border-border/20 last:border-b-0"
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-accent/30 cursor-pointer transition-colors border-b border-border/20 last:border-b-0"
                 >
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                    <User className="w-4 h-4 text-primary" />
+                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                    <User className="w-5 h-5 text-primary" />
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <p className="font-medium text-foreground truncate text-sm">
-                        {identity.name}
-                      </p>
-                      <Badge variant="outline" className="text-xs bg-violet-500/10 text-violet-400 border-violet-500/30 px-1.5 py-0">
-                        Verified
-                      </Badge>
-                    </div>
+                    <p className="font-medium text-foreground truncate">
+                      {identity.name}
+                    </p>
                     <p className="text-xs text-muted-foreground font-mono truncate">
                       {identity.abbreviatedKey}
                     </p>
@@ -213,12 +202,11 @@ export const IdentitySearchField: React.FC<IdentitySearchFieldProps> = ({
           ) : (
             !isLoading && searchTerm.length > 1 && (
               <div className="p-6 text-center text-muted-foreground">
-                <User className="w-6 h-6 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No identities found</p>
+                <p className="text-sm">No results found</p>
               </div>
             )
           )}
-        </Card>
+        </div>
       )}
     </div>
   )

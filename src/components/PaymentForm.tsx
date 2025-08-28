@@ -37,7 +37,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSe
     try {
       const walletClient = new WalletClient()
       const peerPayClient = new PeerPayClient({
-        messageBoxHost: constants.messageboxURL,
+        // messageBoxHost: constants.messageboxURL,
         walletClient
       })
 

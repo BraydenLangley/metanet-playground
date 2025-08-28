@@ -15,7 +15,7 @@ interface PaymentFormProps {
 }
 
 const constants = {
-  messageboxURL: 'https://messageboxhost.example.com' // Update with actual URL
+  messageboxURL: 'https://messagebox.babbage.systems' // Update with actual URL
 }
 
 export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSent }) => {

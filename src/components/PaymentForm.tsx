@@ -64,7 +64,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSe
   }
 
   return (
-    <div className="space-y-6 overscroll-none">
+    <div className="h-full flex flex-col space-y-6 overscroll-none overflow-hidden">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="sm" onClick={onBack} className="p-2 rounded-full shrink-0">
           <ArrowLeft className="w-5 h-5" />
@@ -72,7 +72,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSe
         <h2 className="text-lg font-semibold truncate">Send to {recipient.name}</h2>
       </div>
 
-      <div className="space-y-4">
+      <div className="flex-1 flex flex-col justify-center space-y-4">
         <Input
           type="number"
           step="1"

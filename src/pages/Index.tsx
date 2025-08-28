@@ -28,16 +28,16 @@ const Index = () => {
   const handleIdentitySelected = useCallback((identity: DisplayableIdentity) => {
     setSelectedIdentity(identity);
   }, []);
-  return <div className="min-h-screen bg-gradient-background overflow-x-hidden overscroll-none">
-      <main className="container mx-auto px-4 py-4 max-w-sm w-full">
-        {!selectedIdentity ? <div className="space-y-6">
-            <div className="text-center pt-6">
+  return <div className="h-screen bg-gradient-background overflow-hidden overscroll-none touch-none">
+      <main className="h-full flex flex-col px-4 py-4 max-w-sm w-full mx-auto">
+        {!selectedIdentity ? <div className="flex-1 flex flex-col justify-center space-y-6">
+            <div className="text-center">
               <h1 className="text-2xl font-bold gradient-text mb-2">Pay a Friend</h1>
               <p className="text-muted-foreground">Search for someone to pay</p>
             </div>
             
             <IdentitySearchField onIdentitySelected={handleIdentitySelected} className="w-full" />
-          </div> : <div className="space-y-6 pt-2">
+          </div> : <div className="flex-1 flex flex-col space-y-6 pt-2 overflow-hidden">
             <IdentityDisplay identity={selectedIdentity} />
             <PaymentForm recipient={selectedIdentity} onPaymentSent={() => {
           setSelectedIdentity(null);

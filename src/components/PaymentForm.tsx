@@ -64,7 +64,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSe
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overscroll-none">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="sm" onClick={onBack} className="p-2 rounded-full shrink-0">
           <ArrowLeft className="w-5 h-5" />
@@ -80,14 +80,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSe
           placeholder="Amount in sats"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          className="text-2xl font-mono text-center h-16 text-foreground bg-card border-border/50 rounded-2xl touch-manipulation"
+          className="text-xl font-mono text-center h-14 text-foreground bg-card border-border/50 rounded-2xl touch-manipulation"
           autoFocus
         />
 
         <Button 
           onClick={handleSendPayment}
           disabled={isLoading || !amount || parseInt(amount) <= 0}
-          className="w-full h-14 text-lg font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl touch-manipulation"
+          className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl touch-manipulation"
         >
           {isLoading ? (
             <>

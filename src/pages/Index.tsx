@@ -28,7 +28,7 @@ const Index = () => {
   const handleIdentitySelected = useCallback((identity: DisplayableIdentity) => {
     setSelectedIdentity(identity);
   }, []);
-  return <div className="min-h-screen bg-gradient-background overflow-x-hidden">
+  return <div className="min-h-screen bg-gradient-background overflow-x-hidden overscroll-none">
       <main className="container mx-auto px-4 py-4 max-w-sm w-full">
         {!selectedIdentity ? <div className="space-y-6">
             <div className="text-center pt-6">

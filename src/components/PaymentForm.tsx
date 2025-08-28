@@ -44,7 +44,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSe
       const amountInSats = parseInt(amount)
       const finalRecipientKey = recipient.identityKey
 
-      await peerPayClient.sendLivePayment({ 
+      await peerPayClient.sendPayment({ 
         recipient: finalRecipientKey, 
         amount: amountInSats 
       })

@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react'
 import { IdentitySearchField } from '@/components/IdentitySearchField'
 import { SearchPerformanceIndicator } from '@/components/SearchPerformanceIndicator'
+import { PaymentForm } from '@/components/PaymentForm'
 import { DisplayableIdentity } from '@/types/identity'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -143,10 +144,21 @@ const Index = () => {
 
           {/* Selected Identity Display */}
           {selectedIdentity && (
-            <IdentityDisplay 
-              identity={selectedIdentity}
-              onCopy={copyToClipboard}
-            />
+            <div className="space-y-6">
+              <IdentityDisplay 
+                identity={selectedIdentity}
+                onCopy={copyToClipboard}
+              />
+              <PaymentForm 
+                recipient={selectedIdentity}
+                onPaymentSent={() => {
+                  toast({
+                    title: "Payment Complete",
+                    description: "Transaction has been broadcasted to the network",
+                  })
+                }}
+              />
+            </div>
           )}
 
           {/* Info Section */}

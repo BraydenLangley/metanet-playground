@@ -4,8 +4,7 @@ import { Input } from '@/components/ui/input'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { DisplayableIdentity } from '@/types/identity'
 import { useToast } from '@/hooks/use-toast'
-import { PeerPayClient } from '@bsv/message-box-client'
-import { WalletClient } from '@bsv/sdk'
+import { usePeerPay } from '@/contexts/PeerPayContext'
 
 interface PaymentFormProps {
   recipient: DisplayableIdentity
@@ -13,14 +12,11 @@ interface PaymentFormProps {
   onBack?: () => void
 }
 
-const constants = {
-  messageboxURL: 'https://messagebox.babbage.systems' // Update with actual URL
-}
-
 export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSent, onBack }) => {
   const [amount, setAmount] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
+  const { peerPayClient } = usePeerPay()
 
   const handleSendPayment = async () => {
     if (!amount || parseInt(amount) <= 0) {
@@ -32,15 +28,17 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSe
       return
     }
 
+    if (!peerPayClient) {
+      toast({
+        description: "Payment client not ready. Please try again.",
+        variant: "destructive"
+      })
+      return
+    }
+
     setIsLoading(true)
     
     try {
-      const walletClient = new WalletClient()
-      const peerPayClient = new PeerPayClient({
-        // messageBoxHost: constants.messageboxURL,
-        walletClient
-      })
-
       const amountInSats = parseInt(amount)
       const finalRecipientKey = recipient.identityKey
 

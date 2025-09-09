@@ -59,10 +59,10 @@ export const IdentitySearchField: React.FC<IdentitySearchFieldProps> = ({
   const abortControllerRef = useRef<AbortController | null>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Create resolver with host overrides
+  // Create resolver with host overrides  
   const resolver = new LookupResolver({
     networkPreset: 'mainnet',
-        hostOverrides: {
+    hostOverrides: {
       'ls_identity': ['https://backend.f8ad4f88d28eff5fd4ab1411e2520a31.projects.babbage.systems']
     }
   })

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef, ReactNode } from 'react'
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { PeerPayClient } from '@bsv/message-box-client'
 import { WalletClient } from '@bsv/sdk'
 
@@ -21,16 +21,17 @@ interface PeerPayProviderProps {
 }
 
 export const PeerPayProvider: React.FC<PeerPayProviderProps> = ({ children }) => {
-  const clientRef = useRef<PeerPayClient | null>(null)
+  const [peerPayClient, setPeerPayClient] = useState<PeerPayClient | null>(null)
 
   useEffect(() => {
     // Initialize the client once when the provider mounts
     const initializeClient = async () => {
       try {
         const walletClient = new WalletClient()
-        clientRef.current = new PeerPayClient({
+        const client = new PeerPayClient({
           walletClient
         })
+        setPeerPayClient(client)
       } catch (error) {
         console.error('Failed to initialize PeerPayClient:', error)
       }
@@ -40,15 +41,12 @@ export const PeerPayProvider: React.FC<PeerPayProviderProps> = ({ children }) =>
 
     // Cleanup on unmount
     return () => {
-      if (clientRef.current) {
-        // PeerPayClient might have cleanup methods in the future
-        clientRef.current = null
-      }
+      setPeerPayClient(null)
     }
   }, [])
 
   return (
-    <PeerPayContext.Provider value={{ peerPayClient: clientRef.current }}>
+    <PeerPayContext.Provider value={{ peerPayClient }}>
       {children}
     </PeerPayContext.Provider>
   )

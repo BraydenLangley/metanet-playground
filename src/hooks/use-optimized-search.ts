@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { IdentityClient, VerifiableCertificate, Transaction, PushDrop, Utils, ProtoWallet } from '@bsv/sdk'
+import { IdentityClient } from '@bsv/sdk'
 import { DisplayableIdentity } from '@/types/identity'
 import { searchCache } from '@/lib/search-cache'
 
@@ -17,71 +17,6 @@ interface SearchState {
   cacheHit: boolean
 }
 
-// Memoized certificate parser for better performance
-const certificateParser = (() => {
-  const parseCache = new Map<string, VerifiableCertificate>()
-  
-  return {
-    async parse(output: any): Promise<VerifiableCertificate | null> {
-      try {
-        const cacheKey = `${output.beef}-${output.outputIndex}`
-        
-        if (parseCache.has(cacheKey)) {
-          return parseCache.get(cacheKey)!
-        }
-
-        const tx = Transaction.fromBEEF(output.beef)
-        const decodedOutput = PushDrop.decode(tx.outputs[output.outputIndex].lockingScript)
-        const certificate: VerifiableCertificate = JSON.parse(Utils.toUTF8(decodedOutput.fields[0]))
-
-        const verifiableCert = new VerifiableCertificate(
-          certificate.type,
-          certificate.serialNumber,
-          certificate.subject,
-          certificate.certifier,
-          certificate.revocationOutpoint,
-          certificate.fields,
-          certificate.keyring,
-          certificate.signature
-        )
-
-        // Optimize decryption and verification
-        const [decryptedFields] = await Promise.all([
-          verifiableCert.decryptFields(new ProtoWallet('anyone')),
-          verifiableCert.verify()
-        ])
-        
-        verifiableCert.decryptedFields = decryptedFields
-        
-        // Cache parsed certificate (limit cache size)
-        if (parseCache.size > 50) {
-          const firstKey = parseCache.keys().next().value
-          parseCache.delete(firstKey)
-        }
-        parseCache.set(cacheKey, verifiableCert)
-        
-        return verifiableCert
-      } catch (error) {
-        console.warn('Certificate parsing failed:', error)
-        return null
-      }
-    }
-  }
-})()
-
-const parseResults = async (lookupResult: any): Promise<VerifiableCertificate[]> => {
-  if (lookupResult.type !== 'output-list' || !lookupResult.outputs?.length) {
-    return []
-  }
-
-  // Parse certificates in parallel for better performance
-  const parsePromises = lookupResult.outputs.map((output: any) => 
-    certificateParser.parse(output)
-  )
-  
-  const parsedResults = await Promise.all(parsePromises)
-  return parsedResults.filter((cert): cert is VerifiableCertificate => cert !== null)
-}
 
 export const useOptimizedSearch = (options: UseOptimizedSearchOptions = {}) => {
   const {
@@ -143,49 +78,25 @@ export const useOptimizedSearch = (options: UseOptimizedSearchOptions = {}) => {
     const startTime = performance.now()
 
     try {
-      const lookupResults = await identityClient.resolveByAttributes({
+      const results = await identityClient.resolveByAttributes({
         attributes: { any: query }
       })
 
       // Check if this request is still current
       if (requestId !== requestIdRef.current) return
 
-      const parsedResults = await parseResults(lookupResults)
       const endTime = performance.now()
       const duration = endTime - startTime
 
-      // Convert to DisplayableIdentity format with optimized processing
-      const displayableIdentities: DisplayableIdentity[] = parsedResults
-        .slice(0, maxResults) // Limit results early
-        .map(cert => {
-          const decryptedFields = cert.decryptedFields || {}
-          const displayName = decryptedFields.userName || 
-                            decryptedFields.email || 
-                            cert.subject || 
-                            'Unknown User'
-
-          const identityKey = cert.subject
-          const abbreviatedKey = identityKey.length > 10 
-            ? `${identityKey.slice(0, 6)}...${identityKey.slice(-4)}` 
-            : identityKey
-
-          return {
-            identityKey,
-            name: displayName,
-            avatarURL: decryptedFields.avatarUrl,
-            abbreviatedKey,
-            badgeLabel: 'Verified Identity'
-          }
-        })
-
-      // Cache the results
-      searchCache.set(query, displayableIdentities, duration)
+      // Limit results and cache them
+      const limitedResults = results.slice(0, maxResults)
+      searchCache.set(query, limitedResults, duration)
 
       // Final check if request is still current
       if (requestId === requestIdRef.current) {
         setState(prev => ({
           ...prev,
-          results: displayableIdentities,
+          results: limitedResults,
           isLoading: false,
           searchTime: duration,
           error: null,

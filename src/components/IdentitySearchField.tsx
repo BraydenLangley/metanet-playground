@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { IdentityClient, VerifiableCertificate, Transaction, PushDrop, Utils, ProtoWallet } from '@bsv/sdk'
+import { IdentityClient } from '@bsv/sdk'
 import { DisplayableIdentity } from '@/types/identity'
 import { cn } from '@/lib/utils'
 
@@ -13,39 +13,6 @@ interface IdentitySearchFieldProps {
   className?: string
 }
 
-const parseResults = async (lookupResult: any): Promise<VerifiableCertificate[]> => {
-  if (lookupResult.type === 'output-list') {
-    const parsedResults: VerifiableCertificate[] = []
-
-    for (const output of lookupResult.outputs) {
-      try {
-        const tx = Transaction.fromBEEF(output.beef)
-        const decodedOutput = PushDrop.decode(tx.outputs[output.outputIndex].lockingScript)
-        const certificate: VerifiableCertificate = JSON.parse(Utils.toUTF8(decodedOutput.fields[0]))
-
-        const verifiableCert = new VerifiableCertificate(
-          certificate.type,
-          certificate.serialNumber,
-          certificate.subject,
-          certificate.certifier,
-          certificate.revocationOutpoint,
-          certificate.fields,
-          certificate.keyring,
-          certificate.signature
-        )
-
-        const decryptedFields = await verifiableCert.decryptFields(new ProtoWallet('anyone'))
-        await verifiableCert.verify()
-        verifiableCert.decryptedFields = decryptedFields
-        parsedResults.push(verifiableCert)
-      } catch (error) {
-        console.error('Error parsing certificate:', error)
-      }
-    }
-    return parsedResults
-  }
-  return []
-}
 
 export const IdentitySearchField: React.FC<IdentitySearchFieldProps> = ({
   onIdentitySelected,
@@ -79,39 +46,17 @@ export const IdentitySearchField: React.FC<IdentitySearchFieldProps> = ({
     const startTime = performance.now()
 
     try {
-      const lookupResults = await identityClient.resolveByAttributes({
+      const results = await identityClient.resolveByAttributes({
         attributes: {
           any: query
         }
       })
 
-      const parsedResults = await parseResults(lookupResults)
       const endTime = performance.now()
       const duration = endTime - startTime
-
       setSearchTime(duration)
 
-      // Convert to DisplayableIdentity format
-      const displayableIdentities: DisplayableIdentity[] = parsedResults.map(cert => {
-        const displayName = cert.decryptedFields?.userName ||
-          cert.decryptedFields?.email ||
-          cert.subject ||
-          'Unknown User'
-
-        const identityKey = cert.subject
-        const abbreviatedKey = identityKey.length > 10 ?
-          `${identityKey.slice(0, 6)}...${identityKey.slice(-4)}` : identityKey
-
-        return {
-          identityKey,
-          name: displayName,
-          avatarURL: cert.decryptedFields?.avatarUrl,
-          abbreviatedKey,
-          badgeLabel: 'Verified Identity'
-        }
-      })
-
-      setResults(displayableIdentities)
+      setResults(results)
       setShowResults(true)
     } catch (error: any) {
       if (error.name === 'AbortError') {

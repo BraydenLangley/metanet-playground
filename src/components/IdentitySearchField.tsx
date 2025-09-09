@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { LookupResolver, VerifiableCertificate, Transaction, PushDrop, Utils, ProtoWallet } from '@bsv/sdk'
+import { IdentityClient, VerifiableCertificate, Transaction, PushDrop, Utils, ProtoWallet } from '@bsv/sdk'
 import { DisplayableIdentity } from '@/types/identity'
 import { cn } from '@/lib/utils'
 
@@ -59,13 +59,8 @@ export const IdentitySearchField: React.FC<IdentitySearchFieldProps> = ({
   const abortControllerRef = useRef<AbortController | null>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Create resolver with host overrides  
-  const resolver = new LookupResolver({
-    networkPreset: 'mainnet',
-    hostOverrides: {
-      'ls_identity': ['https://backend.f8ad4f88d28eff5fd4ab1411e2520a31.projects.babbage.systems']
-    }
-  })
+  // Create identity client
+  const identityClient = new IdentityClient()
 
   const performSearch = async (query: string) => {
     if (!query.trim() || query.length < 2) {
@@ -84,13 +79,9 @@ export const IdentitySearchField: React.FC<IdentitySearchFieldProps> = ({
     const startTime = performance.now()
 
     try {
-      const lookupResults = await resolver.query({
-        service: 'ls_identity',
-        query: {
-          attributes: {
-            any: query
-          },
-          certifiers: ['02cf6cdf466951d8dfc9e7c9367511d0007ed6fba35ed42d425cc412fd6cfd4a17']
+      const lookupResults = await identityClient.resolveByAttributes({
+        attributes: {
+          any: query
         }
       })
 

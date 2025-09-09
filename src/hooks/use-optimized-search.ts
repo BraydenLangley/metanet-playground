@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { LookupResolver, VerifiableCertificate, Transaction, PushDrop, Utils, ProtoWallet } from '@bsv/sdk'
+import { IdentityClient, VerifiableCertificate, Transaction, PushDrop, Utils, ProtoWallet } from '@bsv/sdk'
 import { DisplayableIdentity } from '@/types/identity'
 import { searchCache } from '@/lib/search-cache'
 
@@ -102,10 +102,8 @@ export const useOptimizedSearch = (options: UseOptimizedSearchOptions = {}) => {
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const requestIdRef = useRef<number>(0)
 
-  // Memoized resolver to prevent recreation
-  const resolver = useMemo(() => new LookupResolver({
-    networkPreset: 'mainnet',
-  }), [])
+  // Memoized identity client to prevent recreation
+  const identityClient = useMemo(() => new IdentityClient(), [])
 
   const performSearch = useCallback(async (query: string, requestId: number) => {
     if (!query.trim() || query.length < minQueryLength) {
@@ -145,12 +143,8 @@ export const useOptimizedSearch = (options: UseOptimizedSearchOptions = {}) => {
     const startTime = performance.now()
 
     try {
-      const lookupResults = await resolver.query({
-        service: 'ls_identity',
-        query: {
-          attributes: { any: query },
-          certifiers: ['02cf6cdf466951d8dfc9e7c9367511d0007ed6fba35ed42d425cc412fd6cfd4a17']
-        }
+      const lookupResults = await identityClient.resolveByAttributes({
+        attributes: { any: query }
       })
 
       // Check if this request is still current
@@ -213,7 +207,7 @@ export const useOptimizedSearch = (options: UseOptimizedSearchOptions = {}) => {
         cacheHit: false
       }))
     }
-  }, [resolver, minQueryLength, maxResults])
+  }, [identityClient, minQueryLength, maxResults])
 
   const search = useCallback((query: string) => {
     // Clear existing timeout

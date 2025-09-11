@@ -325,7 +325,7 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08)',
           }}
         >
-          {isLoading ? (
+          {isLoading && results.length === 0 ? (
             <div className="flex items-center gap-3 px-4 py-4">
               <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

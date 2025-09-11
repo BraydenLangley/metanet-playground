@@ -81,35 +81,8 @@ src/
     └── identity.ts     # Identity-related types
 ```
 
-## 🚀 Deployment
-
-### Using Lovable Platform
-1. Open the [Lovable Project](https://lovable.dev/projects/52ecab21-93f9-4951-9abc-3440768f2968)
-2. Click **Share** → **Publish**
-3. Your app will be deployed instantly with a shareable URL
-
-### Custom Domain
-To connect your own domain:
-1. Navigate to **Project** → **Settings** → **Domains** in Lovable
-2. Click **Connect Domain** and follow the setup instructions
-
-Learn more: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
-
-## 🔧 Development Options
-
-### Option 1: Use Lovable (Recommended)
-Visit the [Lovable Project](https://lovable.dev/projects/52ecab21-93f9-4951-9abc-3440768f2968) and start making changes through AI-powered prompting. All changes are automatically committed to the repository.
-
-### Option 2: Local Development
-Clone this repository and develop using your preferred IDE. Push changes to automatically sync with Lovable.
-
-### Option 3: GitHub Integration
-- **Direct Editing**: Edit files directly in GitHub's web interface
-- **Codespaces**: Use GitHub Codespaces for a full cloud development environment
-
 ## 🔗 Links
 
-- **Project URL**: https://lovable.dev/projects/52ecab21-93f9-4951-9abc-3440768f2968
 - **BSV Documentation**: https://docs.bsv.tools/
 - **Lovable Docs**: https://docs.lovable.dev/
 

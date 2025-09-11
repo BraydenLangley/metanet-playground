@@ -115,4 +115,4 @@ Clone this repository and develop using your preferred IDE. Push changes to auto
 
 ## 📝 License
 
-This project is part of the BSV blockchain ecosystem and demonstrates practical applications of blockchain technology for social interactions and micropayments.
+Open BSV License

@@ -1,6 +1,6 @@
 # Metanet Playground
 
-A sophisticated web application for experimenting with identity mentions and instant payments on the BSV blockchain. Built with React and powered by the BSV SDK, this playground demonstrates the potential of blockchain-based social interactions and micropayments.
+A simple web application for experimenting with identity mentions and instant payments on the BSV blockchain. Built with React and powered by the BSV SDK, this playground demonstrates the potential of blockchain-based social interactions and micropayments.
 
 ## 🚀 Features
 

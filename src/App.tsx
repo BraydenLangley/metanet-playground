@@ -3,15 +3,16 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { PeerPayProvider } from "@/contexts/PeerPayContext";
+import { MetanetPlaygroundProvider } from "@/contexts/MetanetPlaygroundContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Main App component with providers for React Query, Metanet functionality, and UI components
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <PeerPayProvider>
+    <MetanetPlaygroundProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -23,7 +24,7 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
-    </PeerPayProvider>
+    </MetanetPlaygroundProvider>
   </QueryClientProvider>
 );
 

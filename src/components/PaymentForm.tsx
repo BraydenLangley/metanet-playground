@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { DisplayableIdentity } from '@/types/identity'
 import { useToast } from '@/hooks/use-toast'
-import { usePeerPay } from '@/contexts/PeerPayContext'
+import { useMetanetPlayground } from '@/contexts/MetanetPlaygroundContext'
 
 interface PaymentFormProps {
   recipient: DisplayableIdentity
@@ -13,11 +13,15 @@ interface PaymentFormProps {
 }
 
 export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSent, onBack }) => {
+  // State management for payment processing
   const [amount, setAmount] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
-  const { peerPayClient } = usePeerPay()
+  const { metanetClient } = useMetanetPlayground()
 
+  /**
+   * Handles payment submission with validation and error handling
+   */
   const handleSendPayment = async () => {
     if (!amount || parseInt(amount) <= 0) {
       toast({
@@ -28,7 +32,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSe
       return
     }
 
-    if (!peerPayClient) {
+    if (!metanetClient) {
       toast({
         description: "Payment client not ready. Please try again.",
         variant: "destructive"
@@ -42,7 +46,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ recipient, onPaymentSe
       const amountInSats = parseInt(amount)
       const finalRecipientKey = recipient.identityKey
 
-      await peerPayClient.sendPayment({ 
+      await metanetClient.sendPayment({ 
         recipient: finalRecipientKey, 
         amount: amountInSats 
       })

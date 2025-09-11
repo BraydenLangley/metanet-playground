@@ -37,12 +37,18 @@ export const PaymentAmountDialog = ({
     onConfirm(numAmount)
   }
 
+  /**
+   * Resets state and closes dialog
+   */
   const handleClose = () => {
     setAmount('')
     setError('')
     onClose()
   }
 
+  /**
+   * Handles amount input changes with numeric validation
+   */
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     // Only allow numbers

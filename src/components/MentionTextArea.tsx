@@ -3,7 +3,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
 import { useOptimizedSearch } from '@/hooks/use-optimized-search'
 import { DisplayableIdentity } from '@/types/identity'
-import { usePeerPay } from '@/contexts/PeerPayContext'
+import { useMetanetPlayground } from '@/contexts/MetanetPlaygroundContext'
 import { useToast } from '@/hooks/use-toast'
 import { PaymentAmountDialog } from '@/components/PaymentAmountDialog'
 import { User, Send } from 'lucide-react'
@@ -30,9 +30,10 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   const [selectedRecipient, setSelectedRecipient] = useState<DisplayableIdentity | null>(null)
   
+  // Hooks for state management and Metanet functionality
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const { results, search } = useOptimizedSearch({ maxResults: 5 })
-  const { peerPayClient } = usePeerPay()
+  const { metanetClient } = useMetanetPlayground()
   const { toast } = useToast()
 
   // Calculate cursor position in pixels
@@ -164,8 +165,11 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
     }
   }, [search, getCaretCoordinates, detectPaymentCommand])
 
+  /**
+   * Processes payment with specified amount using Metanet client
+   */
   const processPaymentWithAmount = useCallback(async (amount: number) => {
-    if (!selectedRecipient || !peerPayClient) {
+    if (!selectedRecipient || !metanetClient) {
       toast({
         title: "Payment Error",
         description: "Payment client not ready. Please try again.",
@@ -177,7 +181,7 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
     setIsProcessing(true)
     
     try {
-      await peerPayClient.sendPayment({ 
+      await metanetClient.sendPayment({
         recipient: selectedRecipient.identityKey, 
         amount: amount 
       })
@@ -201,10 +205,10 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
     } finally {
       setIsProcessing(false)
     }
-  }, [selectedRecipient, peerPayClient, toast])
+  }, [selectedRecipient, metanetClient, toast])
 
   const processPayment = useCallback(async (identity: DisplayableIdentity) => {
-    if (!peerPayClient) {
+    if (!metanetClient) {
       toast({
         title: "Payment Error",
         description: "Payment client not ready. Please try again.",
@@ -222,7 +226,7 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
       setIsProcessing(true)
       
       try {
-        await peerPayClient.sendPayment({ 
+        await metanetClient.sendPayment({ 
           recipient: identity.identityKey, 
           amount: amount 
         })
@@ -250,7 +254,7 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
       setShowPaymentDialog(true)
       setShowMentions(false)
     }
-  }, [text, peerPayClient, toast])
+  }, [text, metanetClient, toast])
 
   const insertMention = useCallback((identity: DisplayableIdentity) => {
     if (!textareaRef.current) return

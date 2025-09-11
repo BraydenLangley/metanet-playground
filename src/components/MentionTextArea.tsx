@@ -32,7 +32,7 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
   
   // Hooks for state management and Metanet functionality
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const { results, search } = useOptimizedSearch({ maxResults: 5 })
+  const { results, search, isLoading } = useOptimizedSearch({ maxResults: 5 })
   const { metanetClient } = useMetanetPlayground()
   const { toast } = useToast()
 
@@ -316,16 +316,31 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
         rows={4}
       />
       
-      {showMentions && results.length > 0 && (
+      {showMentions && (isLoading || results.length > 0) && (
         <div 
-          className="fixed bg-white dark:bg-gray-800 border-0 shadow-xl rounded-lg z-[100] max-h-64 overflow-y-auto w-72 py-2"
+          className="fixed bg-white dark:bg-gray-800 border-0 shadow-xl rounded-lg z-[100] max-h-64 overflow-y-auto w-72 py-2 animate-fade-in"
           style={{
             top: `${dropdownPosition.top}px`,
             left: `${dropdownPosition.left}px`,
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08)',
           }}
         >
-          {results.map((identity, index) => (
+          {isLoading ? (
+            <div className="flex items-center gap-3 px-4 py-4">
+              <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              </div>
+              <div className="flex-1">
+                <div className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                  Searching identities...
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  Finding matches on the network
+                </div>
+              </div>
+            </div>
+          ) : (
+            results.map((identity, index) => (
             <div
               key={identity.identityKey}
               className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all duration-150 ${
@@ -350,7 +365,8 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
                 <Send className="h-4 w-4 text-green-500 flex-shrink-0" />
               )}
             </div>
-          ))}
+            ))
+          )}
         </div>
       )}
       

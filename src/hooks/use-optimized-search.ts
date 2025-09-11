@@ -129,6 +129,9 @@ export const useOptimizedSearch = (options: UseOptimizedSearchOptions = {}) => {
     // Increment request ID for race condition handling
     const requestId = ++requestIdRef.current
 
+    // Immediately clear previous results when starting a new search
+    setState(prev => ({ ...prev, results: [], isLoading: true, error: null }))
+
     // Immediate execution for cached results or short debounce for new searches
     const cachedResult = searchCache.get(query)
     const delay = cachedResult ? 0 : debounceMs

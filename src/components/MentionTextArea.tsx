@@ -5,6 +5,7 @@ import { useOptimizedSearch } from '@/hooks/use-optimized-search'
 import { DisplayableIdentity } from '@/types/identity'
 import { usePeerPay } from '@/contexts/PeerPayContext'
 import { useToast } from '@/hooks/use-toast'
+import { PaymentAmountDialog } from '@/components/PaymentAmountDialog'
 import { User, Send } from 'lucide-react'
 
 interface DropdownPosition {
@@ -26,6 +27,8 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
   const [dropdownPosition, setDropdownPosition] = useState<DropdownPosition>({ top: 0, left: 0 })
   const [isPaymentMode, setIsPaymentMode] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false)
+  const [selectedRecipient, setSelectedRecipient] = useState<DisplayableIdentity | null>(null)
   
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const { results, search } = useOptimizedSearch({ maxResults: 5 })
@@ -161,6 +164,45 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
     }
   }, [search, getCaretCoordinates, detectPaymentCommand])
 
+  const processPaymentWithAmount = useCallback(async (amount: number) => {
+    if (!selectedRecipient || !peerPayClient) {
+      toast({
+        title: "Payment Error",
+        description: "Payment client not ready. Please try again.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsProcessing(true)
+    
+    try {
+      await peerPayClient.sendPayment({ 
+        recipient: selectedRecipient.identityKey, 
+        amount: amount 
+      })
+
+      toast({ 
+        title: "Payment Sent!",
+        description: `Sent ${amount} sats to ${selectedRecipient.name}` 
+      })
+      
+      setText('')
+      setShowMentions(false)
+      setShowPaymentDialog(false)
+      setSelectedRecipient(null)
+    } catch (error) {
+      console.error('Payment failed:', error)
+      toast({
+        title: "Payment Failed",
+        description: "Failed to send payment. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsProcessing(false)
+    }
+  }, [selectedRecipient, peerPayClient, toast])
+
   const processPayment = useCallback(async (identity: DisplayableIdentity) => {
     if (!peerPayClient) {
       toast({
@@ -173,47 +215,40 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
 
     // Extract amount from the command (look for numbers)
     const payCommandMatch = text.match(/\/pay\s+@[^@\s]*\s+(\d+)/i)
-    let amount = payCommandMatch ? parseInt(payCommandMatch[1]) : null
+    const amount = payCommandMatch ? parseInt(payCommandMatch[1]) : null
 
-    // If no amount specified, prompt for it
-    if (!amount) {
-      const amountStr = prompt(`How many sats do you want to send to ${identity.name}?`)
-      if (!amountStr) return
-      amount = parseInt(amountStr)
-      if (isNaN(amount) || amount <= 0) {
+    if (amount && amount > 0) {
+      // If amount is specified in command, use it directly
+      setIsProcessing(true)
+      
+      try {
+        await peerPayClient.sendPayment({ 
+          recipient: identity.identityKey, 
+          amount: amount 
+        })
+
+        toast({ 
+          title: "Payment Sent!",
+          description: `Sent ${amount} sats to ${identity.name}` 
+        })
+        
+        setText('')
+        setShowMentions(false)
+      } catch (error) {
+        console.error('Payment failed:', error)
         toast({
-          title: "Invalid Amount",
-          description: "Please enter a valid amount greater than 0",
+          title: "Payment Failed",
+          description: "Failed to send payment. Please try again.",
           variant: "destructive"
         })
-        return
+      } finally {
+        setIsProcessing(false)
       }
-    }
-
-    setIsProcessing(true)
-    
-    try {
-      await peerPayClient.sendPayment({ 
-        recipient: identity.identityKey, 
-        amount: amount 
-      })
-
-      toast({ 
-        title: "Payment Sent!",
-        description: `Sent ${amount} sats to ${identity.name}` 
-      })
-      
-      setText('')
+    } else {
+      // If no amount specified, show dialog
+      setSelectedRecipient(identity)
+      setShowPaymentDialog(true)
       setShowMentions(false)
-    } catch (error) {
-      console.error('Payment failed:', error)
-      toast({
-        title: "Payment Failed",
-        description: "Failed to send payment. Please try again.",
-        variant: "destructive"
-      })
-    } finally {
-      setIsProcessing(false)
     }
   }, [text, peerPayClient, toast])
 
@@ -314,6 +349,17 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
           ))}
         </div>
       )}
+      
+      <PaymentAmountDialog
+        isOpen={showPaymentDialog}
+        onClose={() => {
+          setShowPaymentDialog(false)
+          setSelectedRecipient(null)
+        }}
+        onConfirm={processPaymentWithAmount}
+        recipient={selectedRecipient}
+        isProcessing={isProcessing}
+      />
     </div>
   )
 }

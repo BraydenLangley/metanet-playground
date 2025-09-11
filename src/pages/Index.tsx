@@ -3,6 +3,7 @@ import { IdentitySearchField } from '@/components/IdentitySearchField';
 import { PaymentForm } from '@/components/PaymentForm';
 import ContactSelector from '@/components/ContactSelector';
 import AddContactModal from '@/components/AddContactModal';
+import { MentionTextArea } from '@/components/MentionTextArea';
 import { DisplayableIdentity } from '@/types/identity';
 import { User, Plus, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -45,6 +46,12 @@ const Index = () => {
             <div className="text-center">
               <h1 className="text-2xl font-bold gradient-text mb-2">Pay a Friend</h1>
               <p className="text-muted-foreground">Search or select from contacts</p>
+            </div>
+
+            {/* Mention Text Area Proof of Concept */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Test @ Mentions (Proof of Concept)</h3>
+              <MentionTextArea placeholder="Type @ to mention someone..." />
             </div>
             
             <Tabs defaultValue="search" className="w-full">

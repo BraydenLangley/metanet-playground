@@ -3,7 +3,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
 import { useOptimizedSearch } from '@/hooks/use-optimized-search'
 import { DisplayableIdentity } from '@/types/identity'
-import { User } from 'lucide-react'
+import { usePeerPay } from '@/contexts/PeerPayContext'
+import { useToast } from '@/hooks/use-toast'
+import { User, Send } from 'lucide-react'
 
 interface DropdownPosition {
   top: number
@@ -22,9 +24,13 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
   const [mentionStart, setMentionStart] = useState(0)
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [dropdownPosition, setDropdownPosition] = useState<DropdownPosition>({ top: 0, left: 0 })
+  const [isPaymentMode, setIsPaymentMode] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
   
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const { results, search } = useOptimizedSearch({ maxResults: 5 })
+  const { peerPayClient } = usePeerPay()
+  const { toast } = useToast()
 
   // Calculate cursor position in pixels
   const getCaretCoordinates = useCallback((element: HTMLTextAreaElement, position: number) => {
@@ -67,13 +73,59 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
     return coordinates
   }, [])
 
+  // Check for /pay @user pattern
+  const detectPaymentCommand = useCallback((text: string, cursorPosition: number) => {
+    const beforeCursor = text.substring(0, cursorPosition)
+    const payPattern = /\/pay\s+@([^@\s]*)?$/
+    const match = beforeCursor.match(payPattern)
+    
+    if (match) {
+      setIsPaymentMode(true)
+      return {
+        isPayCommand: true,
+        query: match[1] || '',
+        startIndex: beforeCursor.lastIndexOf('@') + 1
+      }
+    }
+    
+    setIsPaymentMode(false)
+    return { isPayCommand: false, query: '', startIndex: -1 }
+  }, [])
+
   const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value
     const cursorPosition = e.target.selectionStart
     
     setText(value)
     
-    // Find the last @ before cursor position
+    // Check for payment command first
+    const payCommand = detectPaymentCommand(value, cursorPosition)
+    
+    if (payCommand.isPayCommand) {
+      const query = payCommand.query
+      setMentionQuery(query)
+      setMentionStart(payCommand.startIndex - 1) // -1 to include @
+      setShowMentions(true)
+      setSelectedIndex(0)
+      
+      // Calculate position of @ symbol
+      if (textareaRef.current) {
+        const textareaRect = textareaRef.current.getBoundingClientRect()
+        const caretCoords = getCaretCoordinates(textareaRef.current, payCommand.startIndex)
+        
+        setDropdownPosition({
+          top: textareaRect.top + caretCoords.top + 20,
+          left: textareaRect.left + caretCoords.left
+        })
+      }
+      
+      if (query.length > 0) {
+        search(query)
+      }
+      return
+    }
+    
+    // Regular @ mention detection
     const beforeCursor = value.substring(0, cursorPosition)
     const lastAtIndex = beforeCursor.lastIndexOf('@')
     
@@ -107,10 +159,72 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
     } else {
       setShowMentions(false)
     }
-  }, [search, getCaretCoordinates])
+  }, [search, getCaretCoordinates, detectPaymentCommand])
+
+  const processPayment = useCallback(async (identity: DisplayableIdentity) => {
+    if (!peerPayClient) {
+      toast({
+        title: "Payment Error",
+        description: "Payment client not ready. Please try again.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Extract amount from the command (look for numbers)
+    const payCommandMatch = text.match(/\/pay\s+@[^@\s]*\s+(\d+)/i)
+    let amount = payCommandMatch ? parseInt(payCommandMatch[1]) : null
+
+    // If no amount specified, prompt for it
+    if (!amount) {
+      const amountStr = prompt(`How many sats do you want to send to ${identity.name}?`)
+      if (!amountStr) return
+      amount = parseInt(amountStr)
+      if (isNaN(amount) || amount <= 0) {
+        toast({
+          title: "Invalid Amount",
+          description: "Please enter a valid amount greater than 0",
+          variant: "destructive"
+        })
+        return
+      }
+    }
+
+    setIsProcessing(true)
+    
+    try {
+      await peerPayClient.sendPayment({ 
+        recipient: identity.identityKey, 
+        amount: amount 
+      })
+
+      toast({ 
+        title: "Payment Sent!",
+        description: `Sent ${amount} sats to ${identity.name}` 
+      })
+      
+      setText('')
+      setShowMentions(false)
+    } catch (error) {
+      console.error('Payment failed:', error)
+      toast({
+        title: "Payment Failed",
+        description: "Failed to send payment. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsProcessing(false)
+    }
+  }, [text, peerPayClient, toast])
 
   const insertMention = useCallback((identity: DisplayableIdentity) => {
     if (!textareaRef.current) return
+    
+    // If in payment mode, process payment instead of just inserting mention
+    if (isPaymentMode) {
+      processPayment(identity)
+      return
+    }
     
     const beforeMention = text.substring(0, mentionStart)
     const afterMention = text.substring(mentionStart + mentionQuery.length + 1) // +1 for the @
@@ -126,7 +240,7 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
       textareaRef.current?.focus()
       textareaRef.current?.setSelectionRange(newCursorPosition, newCursorPosition)
     }, 0)
-  }, [text, mentionStart, mentionQuery])
+  }, [text, mentionStart, mentionQuery, isPaymentMode, processPayment])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (!showMentions || results.length === 0) return
@@ -157,8 +271,9 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
         value={text}
         onChange={handleTextChange}
         onKeyDown={handleKeyDown}
-        placeholder={placeholder || "Type @ to mention someone..."}
+        placeholder={placeholder || "Type @ to mention someone or /pay @user to send payment..."}
         className={className}
+        disabled={isProcessing}
         rows={4}
       />
       
@@ -192,6 +307,9 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
                   @{identity.abbreviatedKey}
                 </div>
               </div>
+              {isPaymentMode && (
+                <Send className="h-4 w-4 text-green-500 flex-shrink-0" />
+              )}
             </div>
           ))}
         </div>

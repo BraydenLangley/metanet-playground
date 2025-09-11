@@ -5,6 +5,11 @@ import { useOptimizedSearch } from '@/hooks/use-optimized-search'
 import { DisplayableIdentity } from '@/types/identity'
 import { User } from 'lucide-react'
 
+interface DropdownPosition {
+  top: number
+  left: number
+}
+
 interface MentionTextAreaProps {
   placeholder?: string
   className?: string
@@ -16,9 +21,51 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
   const [showMentions, setShowMentions] = useState(false)
   const [mentionStart, setMentionStart] = useState(0)
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const [dropdownPosition, setDropdownPosition] = useState<DropdownPosition>({ top: 0, left: 0 })
   
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const { results, search } = useOptimizedSearch({ maxResults: 5 })
+
+  // Calculate cursor position in pixels
+  const getCaretCoordinates = useCallback((element: HTMLTextAreaElement, position: number) => {
+    const div = document.createElement('div')
+    const span = document.createElement('span')
+    
+    const style = div.style
+    const computed = getComputedStyle(element)
+    
+    // Copy the styling from the textarea
+    style.whiteSpace = 'pre-wrap'
+    style.wordWrap = 'break-word'
+    style.position = 'absolute'
+    style.visibility = 'hidden'
+    style.top = '0'
+    style.left = '0'
+    style.width = computed.width
+    style.height = computed.height
+    style.padding = computed.padding
+    style.margin = computed.margin
+    style.border = computed.border
+    style.fontFamily = computed.fontFamily
+    style.fontSize = computed.fontSize
+    style.fontWeight = computed.fontWeight
+    style.lineHeight = computed.lineHeight
+    style.letterSpacing = computed.letterSpacing
+    
+    div.textContent = element.value.substring(0, position)
+    span.textContent = element.value.substring(position) || '.'
+    
+    div.appendChild(span)
+    document.body.appendChild(div)
+    
+    const coordinates = {
+      top: span.offsetTop + parseInt(computed.borderTopWidth),
+      left: span.offsetLeft + parseInt(computed.borderLeftWidth)
+    }
+    
+    document.body.removeChild(div)
+    return coordinates
+  }, [])
 
   const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value
@@ -40,6 +87,17 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
         setShowMentions(true)
         setSelectedIndex(0)
         
+        // Calculate position of @ symbol
+        if (textareaRef.current) {
+          const textareaRect = textareaRef.current.getBoundingClientRect()
+          const caretCoords = getCaretCoordinates(textareaRef.current, lastAtIndex + 1)
+          
+          setDropdownPosition({
+            top: textareaRect.top + caretCoords.top + 20, // Offset below the line
+            left: textareaRect.left + caretCoords.left
+          })
+        }
+        
         if (query.length > 0) {
           search(query)
         }
@@ -49,7 +107,7 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
     } else {
       setShowMentions(false)
     }
-  }, [search])
+  }, [search, getCaretCoordinates])
 
   const insertMention = useCallback((identity: DisplayableIdentity) => {
     if (!textareaRef.current) return
@@ -105,7 +163,13 @@ export const MentionTextArea = ({ placeholder, className }: MentionTextAreaProps
       />
       
       {showMentions && results.length > 0 && (
-        <Card className="absolute top-full left-0 right-0 mt-1 z-50 max-h-48 overflow-y-auto">
+        <Card 
+          className="fixed bg-background border border-border shadow-lg rounded-lg z-[100] max-h-48 overflow-y-auto w-64"
+          style={{
+            top: `${dropdownPosition.top}px`,
+            left: `${dropdownPosition.left}px`,
+          }}
+        >
           <div className="p-1">
             {results.map((identity, index) => (
               <div

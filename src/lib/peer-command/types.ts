@@ -1,4 +1,4 @@
-import type { PaymentParams, SendMessageParams, SendMessageResponse } from '@bsv/message-box-client'
+import type { PaymentParams, PeerMessage, SendMessageParams, SendMessageResponse } from '@bsv/message-box-client'
 
 export type PeerCommand = 'pay' | 'message' | 'chat'
 
@@ -34,6 +34,7 @@ export interface CommandExecutionResult {
   summary: string
   details?: string
   metadata?: Record<string, unknown>
+  direction?: 'outbound' | 'inbound'
 }
 
 export type CommandHistoryEntry = CommandExecutionResult & {
@@ -43,8 +44,11 @@ export type CommandHistoryEntry = CommandExecutionResult & {
 
 export interface PeerActionClient {
   /** Optionally initialise the underlying client */
-  init?: () => Promise<void>
+  init?: (host?: string) => Promise<void>
   sendPayment: (payment: PaymentParams, hostOverride?: string) => Promise<unknown>
   sendMessage: (params: SendMessageParams, hostOverride?: string) => Promise<SendMessageResponse>
   sendLiveMessage: (params: SendMessageParams, hostOverride?: string) => Promise<SendMessageResponse>
+  listenForLiveMessages?: (config: { messageBox: string, onMessage: (message: PeerMessage) => void, overrideHost?: string }) => Promise<void>
+  leaveRoom?: (messageBox: string) => Promise<void>
+  disconnectWebSocket?: () => Promise<void>
 }

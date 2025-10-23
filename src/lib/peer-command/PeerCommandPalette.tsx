@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
+import type { PeerMessage } from '@bsv/message-box-client'
 import { formatCommandHint, parseCommand } from './parser'
 import type {
   CommandExecutionResult,
@@ -12,6 +13,8 @@ import type {
 
 const DIRECT_MESSAGE_BOX = 'direct_messages'
 const CHAT_MESSAGE_BOX = 'live_chat'
+const PAYMENT_MESSAGE_BOX = 'payment_inbox'
+const DEFAULT_MESSAGE_BOX_HOST = 'http://messagebox.babbage.systems'
 
 const defaultMessages: Record<Exclude<PeerCommand, 'pay'>, string> = {
   message: "Hey there! Let's build something on BSV together.",
@@ -37,7 +40,11 @@ export interface PeerCommandPaletteProps {
   /** Text injected when `/chat` has no trailing text */
   defaultChatText?: string
   /** Called whenever a command successfully executes */
-  onCommandComplete?: (result: CommandExecutionResult) => void
+  onCommandComplete?: (result: CommandHistoryEntry) => void
+  /** Hostname of the message box server */
+  messageBoxHost?: string
+  /** Toggle live websocket listeners for inboxes */
+  enableLiveListeners?: boolean
   className?: string
 }
 
@@ -48,14 +55,35 @@ export function PeerCommandPalette ({
   defaultMessageText = defaultMessages.message,
   defaultChatText = defaultMessages.chat,
   onCommandComplete,
+  messageBoxHost = DEFAULT_MESSAGE_BOX_HOST,
+  enableLiveListeners = true,
   className
 }: PeerCommandPaletteProps) {
   const [inputValue, setInputValue] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [history, setHistory] = useState<CommandHistoryEntry[]>([])
+  const [directory, setDirectory] = useState<PeerProfile[]>(peers)
   const [isExecuting, setIsExecuting] = useState(false)
   const [hasInitialised, setHasInitialised] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const directoryRef = useRef<PeerProfile[]>(directory)
+
+  useEffect(() => {
+    directoryRef.current = directory
+  }, [directory])
+
+  useEffect(() => {
+    setDirectory(previous => {
+      const merged = new Map<string, PeerProfile>()
+      for (const peer of previous) {
+        merged.set(peer.identityKey, peer)
+      }
+      for (const peer of peers) {
+        merged.set(peer.identityKey, peer)
+      }
+      return Array.from(merged.values())
+    })
+  }, [peers])
 
   const mentionQuery = useMemo(() => {
     const match = inputValue.match(/@([\w.-]*)$/)
@@ -67,13 +95,13 @@ export function PeerCommandPalette ({
 
   const filteredPeers = useMemo(() => {
     if (mentionQuery.length === 0) {
-      return peers
+      return directory
     }
-    return peers.filter(peer =>
+    return directory.filter(peer =>
       peer.handle.toLowerCase().includes(mentionQuery) ||
       peer.displayName.toLowerCase().includes(mentionQuery)
     )
-  }, [mentionQuery, peers])
+  }, [mentionQuery, directory])
 
   useEffect(() => {
     if (inputRef.current != null && history.length === 0) {
@@ -84,24 +112,71 @@ export function PeerCommandPalette ({
   const ensureClientInitialised = useCallback(async () => {
     if (hasInitialised) return
     if (typeof client.init === 'function') {
-      await client.init()
+      await client.init(messageBoxHost)
     }
     setHasInitialised(true)
-  }, [client, hasInitialised])
+  }, [client, hasInitialised, messageBoxHost])
+
+  useEffect(() => {
+    void ensureClientInitialised()
+  }, [ensureClientInitialised])
 
   const appendHistory = useCallback((entry: CommandExecutionResult) => {
     const newEntry: CommandHistoryEntry = {
       ...entry,
       id: createId(),
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      direction: entry.direction ?? 'outbound'
     }
 
     setHistory(previous => [newEntry, ...previous].slice(0, 12))
-    onCommandComplete?.(entry)
+    onCommandComplete?.(newEntry)
   }, [onCommandComplete])
 
+  const registerPeer = useCallback((peer: PeerProfile) => {
+    setDirectory(previous => {
+      const existing = previous.find(candidate => candidate.identityKey === peer.identityKey)
+      if (existing != null) {
+        return previous.map(candidate =>
+          candidate.identityKey === peer.identityKey ? { ...existing, ...peer } : candidate
+        )
+      }
+      return [...previous, peer]
+    })
+    return peer
+  }, [])
+
+  const inferPeerFromMessage = useCallback((message: PeerMessage): PeerProfile => {
+    const existing = directoryRef.current.find(candidate => candidate.identityKey === message.sender)
+    if (existing != null) {
+      return existing
+    }
+
+    const generatedHandle = `peer_${message.sender.slice(0, 8).toLowerCase()}`
+    const inferredPeer: PeerProfile = {
+      identityKey: message.sender,
+      handle: generatedHandle,
+      displayName: message.sender.slice(0, 16)
+    }
+
+    registerPeer(inferredPeer)
+    return inferredPeer
+  }, [registerPeer])
+
+  const stringifyBody = useCallback((body: PeerMessage['body']): string => {
+    if (typeof body === 'string') {
+      return body
+    }
+    try {
+      return JSON.stringify(body)
+    } catch (jsonError) {
+      console.error('Failed to serialise message body', jsonError)
+      return '[unserialisable body]'
+    }
+  }, [])
+
   const executeCommand = useCallback(async () => {
-    const { result, error: parseError } = parseCommand(inputValue, { peers })
+    const { result, error: parseError } = parseCommand(inputValue, { peers: directory })
 
     if (parseError != null) {
       setError(parseError)
@@ -124,7 +199,7 @@ export function PeerCommandPalette ({
         const response = await client.sendPayment({
           recipient: parsed.peer.identityKey,
           amount
-        })
+        }, messageBoxHost)
 
         const summary = `Sent ${amount} sats to ${parsed.peer.displayName}`
         const details = typeof parsed.text === 'string' ? parsed.text : undefined
@@ -138,7 +213,8 @@ export function PeerCommandPalette ({
           metadata: {
             amount,
             response
-          }
+          },
+          direction: 'outbound'
         })
       } else if (parsed.command === 'message') {
         const body = parsed.text ?? defaultMessageText
@@ -146,8 +222,8 @@ export function PeerCommandPalette ({
           recipient: parsed.peer.identityKey,
           messageBox: DIRECT_MESSAGE_BOX,
           body,
-          skipEncryption: true
-        })
+          skipEncryption: false
+        }, messageBoxHost)
 
         appendHistory({
           status: 'success',
@@ -155,7 +231,8 @@ export function PeerCommandPalette ({
           peer: parsed.peer,
           summary: `Message delivered to ${parsed.peer.displayName}`,
           details: body,
-          metadata: { response }
+          metadata: { response },
+          direction: 'outbound'
         })
       } else {
         const body = parsed.text ?? defaultChatText
@@ -163,8 +240,8 @@ export function PeerCommandPalette ({
           recipient: parsed.peer.identityKey,
           messageBox: CHAT_MESSAGE_BOX,
           body,
-          skipEncryption: true
-        })
+          skipEncryption: false
+        }, messageBoxHost)
 
         appendHistory({
           status: 'success',
@@ -172,7 +249,8 @@ export function PeerCommandPalette ({
           peer: parsed.peer,
           summary: `Started live chat with ${parsed.peer.displayName}`,
           details: body,
-          metadata: { response }
+          metadata: { response },
+          direction: 'outbound'
         })
       }
 
@@ -185,12 +263,107 @@ export function PeerCommandPalette ({
         command: parsed.command,
         peer: parsed.peer,
         summary: message,
-        details: parsed.rawInput
+        details: parsed.rawInput,
+        direction: 'outbound'
       })
     } finally {
       setIsExecuting(false)
     }
-  }, [appendHistory, client, defaultChatText, defaultMessageText, defaultPaymentAmount, ensureClientInitialised, inputValue, peers])
+  }, [appendHistory, client, defaultChatText, defaultMessageText, defaultPaymentAmount, ensureClientInitialised, inputValue, messageBoxHost, directory])
+
+  useEffect(() => {
+    const listenForLiveMessages = client.listenForLiveMessages
+    if (!enableLiveListeners || typeof listenForLiveMessages !== 'function') {
+      return
+    }
+
+    let disposed = false
+
+    const attachListener = async (
+      messageBox: string,
+      command: PeerCommand,
+      summaryBuilder: (peer: PeerProfile, message: PeerMessage) => { summary: string, details?: string }
+    ): Promise<void> => {
+      await listenForLiveMessages({
+        messageBox,
+        overrideHost: messageBoxHost,
+        onMessage: (message) => {
+          if (disposed) return
+          const peer = inferPeerFromMessage(message)
+          const { summary, details } = summaryBuilder(peer, message)
+          appendHistory({
+            status: 'success',
+            command,
+            peer,
+            summary,
+            details,
+            metadata: { message },
+            direction: 'inbound'
+          })
+        }
+      })
+    }
+
+    const parsePaymentSummary = (peer: PeerProfile, message: PeerMessage): { summary: string, details?: string } => {
+      let amount: number | undefined
+      let details: string | undefined
+      try {
+        const payload = typeof message.body === 'string' ? JSON.parse(message.body) : message.body
+        if (typeof payload === 'object' && payload !== null) {
+          if (typeof (payload as any).amount === 'number') {
+            amount = (payload as any).amount
+          } else if (typeof (payload as any).token === 'object' && (payload as any).token != null && typeof (payload as any).token.amount === 'number') {
+            amount = (payload as any).token.amount
+          }
+          details = JSON.stringify(payload, null, 2)
+        } else {
+          details = stringifyBody(message.body)
+        }
+      } catch (parseError) {
+        details = stringifyBody(message.body)
+      }
+
+      return {
+        summary: amount != null
+          ? `Received payment token for ${amount} sats from ${peer.displayName}`
+          : `Received payment token from ${peer.displayName}`,
+        details
+      }
+    }
+
+    const parseTextSummary = (action: 'message' | 'chat') => (peer: PeerProfile, message: PeerMessage): { summary: string, details?: string } => {
+      const body = stringifyBody(message.body)
+      const summary = action === 'message'
+        ? `Live message from ${peer.displayName}`
+        : `Live chat update from ${peer.displayName}`
+      return {
+        summary,
+        details: body
+      }
+    }
+
+    void (async () => {
+      try {
+        await ensureClientInitialised()
+        await Promise.all([
+          attachListener(DIRECT_MESSAGE_BOX, 'message', parseTextSummary('message')),
+          attachListener(CHAT_MESSAGE_BOX, 'chat', parseTextSummary('chat')),
+          attachListener(PAYMENT_MESSAGE_BOX, 'pay', parsePaymentSummary)
+        ])
+      } catch (listenerError) {
+        console.error('Failed to attach live message listeners', listenerError)
+      }
+    })()
+
+    return () => {
+      disposed = true
+      if (typeof client.leaveRoom === 'function') {
+        void client.leaveRoom(DIRECT_MESSAGE_BOX).catch(() => {})
+        void client.leaveRoom(CHAT_MESSAGE_BOX).catch(() => {})
+        void client.leaveRoom(PAYMENT_MESSAGE_BOX).catch(() => {})
+      }
+    }
+  }, [appendHistory, client, enableLiveListeners, ensureClientInitialised, inferPeerFromMessage, messageBoxHost, stringifyBody])
 
   const handlePeerInsert = useCallback((peer: PeerProfile) => {
     setInputValue(previous => {
@@ -248,10 +421,10 @@ export function PeerCommandPalette ({
             <button
               key={command}
               type="button"
-              onClick={() => setInputValue(formatCommandHint(command, peers[0]?.handle ?? 'alice'))}
+              onClick={() => setInputValue(formatCommandHint(command, directory[0]?.handle ?? 'alice'))}
               className="rounded-full border border-slate-700/80 bg-slate-900/60 px-3 py-1 font-medium text-slate-300 transition hover:border-indigo-400/70 hover:text-white"
             >
-              {formatCommandHint(command, peers[0]?.handle ?? 'alice')}
+              {formatCommandHint(command, directory[0]?.handle ?? 'alice')}
             </button>
           ))}
         </div>
@@ -338,6 +511,10 @@ export function PeerCommandPalette ({
                 {entry.details != null && (
                   <p className="text-xs text-slate-200/80">{entry.details}</p>
                 )}
+                <div className="flex items-center justify-between pt-1 text-[0.65rem] uppercase tracking-[0.25em] text-slate-400">
+                  <span>{entry.direction === 'inbound' ? 'Inbound' : 'Outbound'}</span>
+                  <span className="font-medium">{entry.status}</span>
+                </div>
               </li>
             ))}
           </ul>

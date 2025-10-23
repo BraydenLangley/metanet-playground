@@ -1,14 +1,14 @@
 # Peer Actions Command Kit
 
-The Peer Actions Command Kit packages a fully featured React component for searching MetaNet identities with `@` mentions and triggering familiar slash commands. It also ships with a demo front-end that showcases `/pay`, `/message`, and `/chat` flows wired to the [`@bsv/message-box-client`](https://www.npmjs.com/package/@bsv/message-box-client) API surface.
+The Peer Actions Command Kit packages a production-ready React component that searches MetaNet identities with `@` mentions and executes familiar slash commands against the live MessageBox overlay. It ships with a full demo that connects to [http://messagebox.babbage.systems](http://messagebox.babbage.systems), relays messages over WebSockets, and drives the [`@bsv/message-box-client`](https://www.npmjs.com/package/@bsv/message-box-client) plus `PeerPayClient` without mocks.
 
 ## ✨ Highlights
 
-- **Installable component** – Import `PeerCommandPalette` and drop it into any React 18 + Tailwind project.
-- **Command parsing** – Built-in parser for `/pay`, `/message`, and `/chat` including mention resolution and optional payloads.
-- **Peer directory search** – Type `@` to filter peers by handle or display name, complete with keyboard-friendly quick inserts.
-- **Action wiring** – Uses the `PeerPayClient` interface to send payments, direct messages, and live chat events.
-- **Demo sandbox** – Explore the experience locally with mocked network calls that mimic the real client contract.
+- **Real infrastructure** – Uses `PeerPayClient` + a wallet substrate to reach the public MessageBox host. No simulated responses.
+- **Command parsing** – Built-in parser for `/pay`, `/message`, and `/chat` with amount/message defaults and mention resolution.
+- **WebSocket listeners** – Subscribes to `direct_messages`, `live_chat`, and `payment_inbox` for inbound activity tracking.
+- **Identity search** – Demo integrates the `@bsv/identity-react` search API so you can add verified peers on the fly.
+- **Reusable component** – Drop `PeerCommandPalette` into any React 18 + Tailwind project and wire it to your own wallet client.
 
 ## 📦 Getting started
 
@@ -20,7 +20,12 @@ npm install
 npm run dev
 ```
 
-Open the dev server (Vite defaults to <http://localhost:5173>) to try the component. The demo uses a simulated `PeerPayClient` that returns success responses without touching the network, making it safe to explore.
+### Prerequisites
+
+- A wallet capable of serving the `@bsv/sdk` `WalletClient('auto')` substrate (e.g. Project Babbage's CWI, Cicada, etc.).
+- Network access to [http://messagebox.babbage.systems](http://messagebox.babbage.systems).
+
+Open the Vite dev server (default <http://localhost:5173>) in a browser with a compatible wallet extension. Use the identity search panel to add peers, then trigger commands in the palette to perform live payments, direct messages, and chats.
 
 ## 🧱 Component usage
 
@@ -31,22 +36,24 @@ import { WalletClient } from '@bsv/sdk'
 
 const peers: PeerProfile[] = [
   {
-    identityKey: '0281cf5d2234chance',
-    handle: 'chance',
-    displayName: 'Chance',
-    tagline: 'PeerPay pioneer and Metanet explorer'
+    identityKey: '02abc123…',
+    handle: 'satoshi',
+    displayName: 'Satoshi Nakamoto'
   }
 ]
 
-const client = new PeerPayClient({ walletClient: new WalletClient() })
+const client = new PeerPayClient({
+  walletClient: new WalletClient('auto'),
+  messageBoxHost: 'http://messagebox.babbage.systems'
+})
 
 export function App () {
   return (
     <PeerCommandPalette
       peers={peers}
       client={client}
-      defaultPaymentAmount={750}
-      onCommandComplete={result => console.log(result)}
+      messageBoxHost="http://messagebox.babbage.systems"
+      onCommandComplete={entry => console.log(entry)}
     />
   )
 }
@@ -56,45 +63,48 @@ export function App () {
 
 | Command            | Description                                                                                     |
 | ------------------ | ----------------------------------------------------------------------------------------------- |
-| `/pay @alice 500`  | Sends 500 sats to `@alice` using `PeerPayClient.sendPayment`. Optional trailing text is recorded. |
-| `/message @bob hi` | Sends a direct message via `sendMessage` in the `direct_messages` box.                           |
-| `/chat @ty`        | Starts a live chat room using `sendLiveMessage` against the `live_chat` box.                     |
+| `/pay @alice 500`  | Generates a live payment token via `PeerPayClient.sendPayment`. Optional trailing text is logged. |
+| `/message @bob hi` | Sends a WebSocket message through the `direct_messages` box.                                      |
+| `/chat @ty`        | Broadcasts live chat text to the `live_chat` room with socket acknowledgements.                   |
 
 When an amount or message body is omitted, the component falls back to configurable defaults (`defaultPaymentAmount`, `defaultMessageText`, and `defaultChatText`).
 
 ### Props
 
-| Prop                   | Type                                      | Default | Description                                                                                       |
-| ---------------------- | ----------------------------------------- | ------- | ------------------------------------------------------------------------------------------------- |
-| `peers`                | `PeerProfile[]`                           | —       | Directory records displayed in mention suggestions.                                               |
-| `client`               | `PeerActionClient`                        | —       | Object implementing `PeerPayClient` methods (`init`, `sendPayment`, `sendMessage`, `sendLiveMessage`). |
-| `defaultPaymentAmount` | `number`                                  | `500`   | Amount of sats used when `/pay` does not specify a value.                                         |
-| `defaultMessageText`   | `string`                                  | `Hey there! Let's build something on BSV together.` | Fallback text for `/message`.                                                  |
-| `defaultChatText`      | `string`                                  | `Live chat initiated – say hello!`         | Fallback text for `/chat`.                                                     |
-| `onCommandComplete`    | `(result: CommandExecutionResult) => void`| —       | Callback fired after each action (success or failure).                                            |
-| `className`            | `string`                                  | —       | Optional additional styles for the root container.                                                |
+| Prop                   | Type                                                | Default                               | Description                                                                                           |
+| ---------------------- | --------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `peers`                | `PeerProfile[]`                                     | —                                     | Directory records displayed in mention suggestions.                                                   |
+| `client`               | `PeerActionClient`                                  | —                                     | Object implementing `PeerPayClient` methods (`init`, `sendPayment`, `sendMessage`, `sendLiveMessage`). |
+| `messageBoxHost`       | `string`                                            | `http://messagebox.babbage.systems`   | Host passed to `init`, message sends, and listener subscriptions.                                     |
+| `enableLiveListeners`  | `boolean`                                           | `true`                                | Toggle automatic subscription to `direct_messages`, `live_chat`, and `payment_inbox`.                 |
+| `defaultPaymentAmount` | `number`                                            | `500`                                 | Amount of sats used when `/pay` does not specify a value.                                             |
+| `defaultMessageText`   | `string`                                            | `Hey there! Let's build something on BSV together.` | Fallback text for `/message`.                                                  |
+| `defaultChatText`      | `string`                                            | `Live chat initiated – say hello!`    | Fallback text for `/chat`.                                                     |
+| `onCommandComplete`    | `(result: CommandHistoryEntry) => void`             | —                                     | Callback fired after each outbound/inbound event recorded by the component.                           |
+| `className`            | `string`                                            | —                                     | Optional additional styles for the root container.                                                    |
 
 ## 🧪 Demo front-end
 
-The `src/App.tsx` implementation showcases a polished UX around the shared component:
+The real demo in `src/App.tsx` provides:
 
-- Live metrics for executed payments, messages, and chats
-- Activity feed reusing `CommandExecutionResult` objects
-- Mock `PeerPayClient` subclass that mimics payments/messages/chats with slight delays
+- Live identity search powered by `@bsv/identity-react` with peer management.
+- Outbound command and inbound WebSocket activity metrics.
+- Real `PeerPayClient` initialised against the public MessageBox host (no stubs or mocks).
+- Detailed activity feed showing direction, payload summaries, and timestamps.
 
-Feel free to replace `DemoPeerActionClient` with a real `PeerPayClient` + configured wallet to connect to live infrastructure.
+Bring your own wallet + peers and the app will execute commands end-to-end.
 
 ## 🗂️ Project structure
 
 ```
 src/
-├── App.tsx                  # Demo application wiring
+├── App.tsx                  # Demo application wiring, identity search, metrics
 ├── index.css                # Tailwind theme + component styling helpers
 ├── lib/
 │   ├── index.ts             # Public exports
 │   └── peer-command/
 │       ├── parser.ts        # Slash command parser utilities
-│       ├── PeerCommandPalette.tsx  # Reusable command component
+│       ├── PeerCommandPalette.tsx  # Reusable command component with live sockets
 │       └── types.ts         # Shared types for peers, history, and client contract
 └── main.tsx                 # Vite entry point
 ```

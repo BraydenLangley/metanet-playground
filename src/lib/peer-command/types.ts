@@ -19,7 +19,10 @@ export interface PeerProfile {
 
 export interface ParsedCommand {
   command: PeerCommand
-  peer: PeerProfile
+  /** Handle extracted from the command */
+  handle: string
+  /** Resolved peer when available in the local directory */
+  peer?: PeerProfile
   /** Optional sats amount parsed from the command for `/pay` */
   amount?: number
   /** Optional free-form text parsed from `/message` or `/chat` */

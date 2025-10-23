@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import type { PeerMessage } from '@bsv/message-box-client'
+import { IdentityClient, type DisplayableIdentity } from '@bsv/sdk'
 import { formatCommandHint, parseCommand } from './parser'
 import type {
   CommandExecutionResult,
@@ -15,6 +16,8 @@ const DIRECT_MESSAGE_BOX = 'direct_messages'
 const CHAT_MESSAGE_BOX = 'live_chat'
 const PAYMENT_MESSAGE_BOX = 'payment_inbox'
 const DEFAULT_MESSAGE_BOX_HOST = 'http://messagebox.babbage.systems'
+const MIN_MENTION_LENGTH = 2
+const SEARCH_DEBOUNCE_MS = 200
 
 const defaultMessages: Record<Exclude<PeerCommand, 'pay'>, string> = {
   message: "Hey there! Let's build something on BSV together.",
@@ -63,14 +66,37 @@ export function PeerCommandPalette ({
   const [error, setError] = useState<string | null>(null)
   const [history, setHistory] = useState<CommandHistoryEntry[]>([])
   const [directory, setDirectory] = useState<PeerProfile[]>(peers)
+  const [searchResults, setSearchResults] = useState<PeerProfile[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
   const [isExecuting, setIsExecuting] = useState(false)
   const [hasInitialised, setHasInitialised] = useState(false)
+  const identityClient = useMemo(() => new IdentityClient(), [])
   const inputRef = useRef<HTMLInputElement | null>(null)
   const directoryRef = useRef<PeerProfile[]>(directory)
+  const searchResultsRef = useRef<PeerProfile[]>(searchResults)
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     directoryRef.current = directory
   }, [directory])
+
+  useEffect(() => {
+    searchResultsRef.current = searchResults
+  }, [searchResults])
+
+  const mapIdentityToPeer = useCallback((identity: DisplayableIdentity, fallbackHandle?: string): PeerProfile => {
+    const baseHandle = (identity.name ?? fallbackHandle ?? identity.identityKey.slice(0, 8)).replace(/^@/, '')
+    const normalisedHandle = baseHandle.toLowerCase().replace(/[^a-z0-9.-]/g, '')
+    const finalHandle = normalisedHandle.length > 0 ? normalisedHandle : identity.identityKey.slice(0, 8).toLowerCase()
+    return {
+      identityKey: identity.identityKey,
+      handle: finalHandle,
+      displayName: identity.name ?? identity.identityKey.slice(0, 16),
+      avatarUrl: identity.avatarURL ?? undefined,
+      tagline: identity.badgeLabel ?? undefined
+    }
+  }, [])
 
   useEffect(() => {
     setDirectory(previous => {
@@ -93,15 +119,73 @@ export function PeerCommandPalette ({
     return match[1].toLowerCase()
   }, [inputValue])
 
-  const filteredPeers = useMemo(() => {
+  useEffect(() => {
+    if (searchTimeoutRef.current != null) {
+      clearTimeout(searchTimeoutRef.current)
+      searchTimeoutRef.current = null
+    }
+
+    if (mentionQuery.length < MIN_MENTION_LENGTH) {
+      setSearchResults([])
+      setIsSearching(false)
+      setSearchError(null)
+      return
+    }
+
+    setIsSearching(true)
+    setSearchError(null)
+    let isActive = true
+
+    const timeout = setTimeout(async () => {
+      try {
+        const identities = await identityClient.resolveByAttributes({ attributes: { any: mentionQuery } })
+        if (!isActive) {
+          return
+        }
+        const mapped = identities.map(identity => mapIdentityToPeer(identity, mentionQuery))
+        setSearchResults(mapped)
+        setIsSearching(false)
+      } catch (searchErr) {
+        if (!isActive) {
+          return
+        }
+        console.error('Identity search failed', searchErr)
+        setSearchResults([])
+        setSearchError('Failed to fetch identity suggestions')
+        setIsSearching(false)
+      }
+    }, SEARCH_DEBOUNCE_MS)
+
+    searchTimeoutRef.current = timeout
+
+    return () => {
+      isActive = false
+      clearTimeout(timeout)
+      searchTimeoutRef.current = null
+    }
+  }, [identityClient, mapIdentityToPeer, mentionQuery])
+
+  const suggestedPeers = useMemo(() => {
     if (mentionQuery.length === 0) {
       return directory
     }
-    return directory.filter(peer =>
-      peer.handle.toLowerCase().includes(mentionQuery) ||
-      peer.displayName.toLowerCase().includes(mentionQuery)
-    )
-  }, [mentionQuery, directory])
+
+    const normalised = mentionQuery.toLowerCase()
+    const combined = [...searchResults, ...directory]
+    const unique = new Map<string, PeerProfile>()
+
+    for (const peer of combined) {
+      const matches =
+        peer.handle.toLowerCase().includes(normalised) ||
+        peer.displayName.toLowerCase().includes(normalised)
+      if (!matches) continue
+      if (!unique.has(peer.identityKey)) {
+        unique.set(peer.identityKey, peer)
+      }
+    }
+
+    return Array.from(unique.values())
+  }, [directory, mentionQuery, searchResults])
 
   useEffect(() => {
     if (inputRef.current != null && history.length === 0) {
@@ -134,16 +218,18 @@ export function PeerCommandPalette ({
   }, [onCommandComplete])
 
   const registerPeer = useCallback((peer: PeerProfile) => {
+    let finalPeer = peer
     setDirectory(previous => {
       const existing = previous.find(candidate => candidate.identityKey === peer.identityKey)
       if (existing != null) {
+        finalPeer = { ...existing, ...peer }
         return previous.map(candidate =>
-          candidate.identityKey === peer.identityKey ? { ...existing, ...peer } : candidate
+          candidate.identityKey === peer.identityKey ? finalPeer : candidate
         )
       }
       return [...previous, peer]
     })
-    return peer
+    return finalPeer
   }, [])
 
   const inferPeerFromMessage = useCallback((message: PeerMessage): PeerProfile => {
@@ -162,6 +248,43 @@ export function PeerCommandPalette ({
     registerPeer(inferredPeer)
     return inferredPeer
   }, [registerPeer])
+
+  const resolvePeer = useCallback(async (handle: string): Promise<PeerProfile> => {
+    const normalisedHandle = handle.toLowerCase().replace(/^@/, '')
+    const fromDirectory = directoryRef.current.find(candidate =>
+      candidate.handle.toLowerCase() === normalisedHandle ||
+      candidate.identityKey.toLowerCase() === normalisedHandle
+    )
+    if (fromDirectory != null) {
+      return fromDirectory
+    }
+
+    const fromSearch = searchResultsRef.current.find(candidate =>
+      candidate.handle.toLowerCase() === normalisedHandle ||
+      candidate.identityKey.toLowerCase() === normalisedHandle
+    )
+    if (fromSearch != null) {
+      return registerPeer(fromSearch)
+    }
+
+    try {
+      const identities = await identityClient.resolveByAttributes({ attributes: { any: handle } })
+      const matchedIdentity = identities.find(identity => {
+        const name = identity.name?.replace(/^@/, '').toLowerCase()
+        return name === normalisedHandle || identity.identityKey.toLowerCase() === normalisedHandle
+      }) ?? identities[0]
+
+      if (matchedIdentity == null) {
+        throw new Error('No match')
+      }
+
+      const peerFromIdentity = mapIdentityToPeer(matchedIdentity, handle)
+      return registerPeer(peerFromIdentity)
+    } catch (resolutionError) {
+      console.error(`Unable to resolve identity for @${handle}`, resolutionError)
+      throw new Error(`No peer found for @${handle}`)
+    }
+  }, [identityClient, mapIdentityToPeer, registerPeer])
 
   const stringifyBody = useCallback((body: PeerMessage['body']): string => {
     if (typeof body === 'string') {
@@ -187,8 +310,20 @@ export function PeerCommandPalette ({
     setError(null)
     setIsExecuting(true)
 
+    let resolvedPeer: PeerProfile | undefined
+
     try {
       await ensureClientInitialised()
+
+      if (parsed.peer != null) {
+        resolvedPeer = registerPeer(parsed.peer)
+      } else {
+        resolvedPeer = await resolvePeer(parsed.handle)
+      }
+
+      if (resolvedPeer == null) {
+        throw new Error(`No peer found for @${parsed.handle}`)
+      }
 
       if (parsed.command === 'pay') {
         const amount = parsed.amount ?? defaultPaymentAmount
@@ -197,17 +332,17 @@ export function PeerCommandPalette ({
         }
 
         const response = await client.sendPayment({
-          recipient: parsed.peer.identityKey,
+          recipient: resolvedPeer.identityKey,
           amount
         }, messageBoxHost)
 
-        const summary = `Sent ${amount} sats to ${parsed.peer.displayName}`
+        const summary = `Sent ${amount} sats to ${resolvedPeer.displayName}`
         const details = typeof parsed.text === 'string' ? parsed.text : undefined
 
         appendHistory({
           status: 'success',
           command: parsed.command,
-          peer: parsed.peer,
+          peer: resolvedPeer,
           summary,
           details,
           metadata: {
@@ -219,7 +354,7 @@ export function PeerCommandPalette ({
       } else if (parsed.command === 'message') {
         const body = parsed.text ?? defaultMessageText
         const response = await client.sendMessage({
-          recipient: parsed.peer.identityKey,
+          recipient: resolvedPeer.identityKey,
           messageBox: DIRECT_MESSAGE_BOX,
           body,
           skipEncryption: false
@@ -228,8 +363,8 @@ export function PeerCommandPalette ({
         appendHistory({
           status: 'success',
           command: parsed.command,
-          peer: parsed.peer,
-          summary: `Message delivered to ${parsed.peer.displayName}`,
+          peer: resolvedPeer,
+          summary: `Message delivered to ${resolvedPeer.displayName}`,
           details: body,
           metadata: { response },
           direction: 'outbound'
@@ -237,7 +372,7 @@ export function PeerCommandPalette ({
       } else {
         const body = parsed.text ?? defaultChatText
         const response = await client.sendLiveMessage({
-          recipient: parsed.peer.identityKey,
+          recipient: resolvedPeer.identityKey,
           messageBox: CHAT_MESSAGE_BOX,
           body,
           skipEncryption: false
@@ -246,8 +381,8 @@ export function PeerCommandPalette ({
         appendHistory({
           status: 'success',
           command: parsed.command,
-          peer: parsed.peer,
-          summary: `Started live chat with ${parsed.peer.displayName}`,
+          peer: resolvedPeer,
+          summary: `Started live chat with ${resolvedPeer.displayName}`,
           details: body,
           metadata: { response },
           direction: 'outbound'
@@ -258,10 +393,17 @@ export function PeerCommandPalette ({
     } catch (commandError) {
       const message = commandError instanceof Error ? commandError.message : 'Unknown error'
       setError(message)
+      const peerForHistory = resolvedPeer ?? parsed.peer ?? directoryRef.current.find(candidate =>
+        candidate.handle.toLowerCase() === parsed.handle.toLowerCase()
+      ) ?? {
+        identityKey: parsed.handle,
+        handle: parsed.handle,
+        displayName: `@${parsed.handle}`
+      }
       appendHistory({
         status: 'error',
         command: parsed.command,
-        peer: parsed.peer,
+        peer: peerForHistory,
         summary: message,
         details: parsed.rawInput,
         direction: 'outbound'
@@ -269,7 +411,7 @@ export function PeerCommandPalette ({
     } finally {
       setIsExecuting(false)
     }
-  }, [appendHistory, client, defaultChatText, defaultMessageText, defaultPaymentAmount, ensureClientInitialised, inputValue, messageBoxHost, directory])
+  }, [appendHistory, client, defaultChatText, defaultMessageText, defaultPaymentAmount, ensureClientInitialised, inputValue, messageBoxHost, registerPeer, resolvePeer, directory])
 
   useEffect(() => {
     const listenForLiveMessages = client.listenForLiveMessages
@@ -366,16 +508,17 @@ export function PeerCommandPalette ({
   }, [appendHistory, client, enableLiveListeners, ensureClientInitialised, inferPeerFromMessage, messageBoxHost, stringifyBody])
 
   const handlePeerInsert = useCallback((peer: PeerProfile) => {
+    const storedPeer = registerPeer(peer)
     setInputValue(previous => {
       if (!previous.includes('@')) {
-        return `/message @${peer.handle} `
+        return `/message @${storedPeer.handle} `
       }
 
-      return previous.replace(/@([\w.-]*)$/, `@${peer.handle} `)
+      return previous.replace(/@([\w.-]*)$/, `@${storedPeer.handle} `)
     })
     setError(null)
     inputRef.current?.focus()
-  }, [])
+  }, [registerPeer])
 
   const handleSubmit = useCallback((event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -433,11 +576,17 @@ export function PeerCommandPalette ({
       {mentionQuery.length > 0 && (
         <div className="mt-6">
           <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400">Suggested peers</p>
+          {isSearching && (
+            <p className="mb-2 text-xs text-slate-400">Searching identities…</p>
+          )}
+          {searchError != null && (
+            <p className="mb-2 text-xs text-rose-300">{searchError}</p>
+          )}
           <div className="flex flex-col gap-3">
-            {filteredPeers.length === 0 && (
+            {suggestedPeers.length === 0 && !isSearching && (
               <p className="text-sm text-slate-400">No peers match "{mentionQuery}".</p>
             )}
-            {filteredPeers.slice(0, 5).map(peer => (
+            {suggestedPeers.slice(0, 5).map(peer => (
               <button
                 key={peer.identityKey}
                 type="button"

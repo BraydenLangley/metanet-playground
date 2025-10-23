@@ -6,6 +6,7 @@ The Peer Actions Command Kit packages a production-ready React component that se
 
 - **Real infrastructure** – Uses `PeerPayClient` + a wallet substrate to reach the public MessageBox host. No simulated responses.
 - **Command parsing** – Built-in parser for `/pay`, `/message`, and `/chat` with amount/message defaults and mention resolution.
+- **Automatic identity resolution** – Commands fetch MetaNet identity records on-the-fly when a handle hasn't been added yet.
 - **WebSocket listeners** – Subscribes to `direct_messages`, `live_chat`, and `payment_inbox` for inbound activity tracking.
 - **Identity search** – Demo integrates the `@bsv/identity-react` search API so you can add verified peers on the fly.
 - **Reusable component** – Drop `PeerCommandPalette` into any React 18 + Tailwind project and wire it to your own wallet client.
@@ -73,7 +74,7 @@ When an amount or message body is omitted, the component falls back to configura
 
 | Prop                   | Type                                                | Default                               | Description                                                                                           |
 | ---------------------- | --------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `peers`                | `PeerProfile[]`                                     | —                                     | Directory records displayed in mention suggestions.                                                   |
+| `peers`                | `PeerProfile[]`                                     | —                                     | Directory records displayed in mention suggestions. Unknown handles are resolved automatically.       |
 | `client`               | `PeerActionClient`                                  | —                                     | Object implementing `PeerPayClient` methods (`init`, `sendPayment`, `sendMessage`, `sendLiveMessage`). |
 | `messageBoxHost`       | `string`                                            | `http://messagebox.babbage.systems`   | Host passed to `init`, message sends, and listener subscriptions.                                     |
 | `enableLiveListeners`  | `boolean`                                           | `true`                                | Toggle automatic subscription to `direct_messages`, `live_chat`, and `payment_inbox`.                 |

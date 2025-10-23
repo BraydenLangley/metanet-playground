@@ -35,17 +35,20 @@ export function parseCommand (input: string, { peers }: ParseCommandOptions): { 
   const command = commandRaw.toLowerCase() as PeerCommand
   const handle = handleRaw.toLowerCase()
 
-  const peer = peers.find(candidate => candidate.handle.toLowerCase() === handle || candidate.identityKey.toLowerCase() === handle)
-
-  if (peer == null) {
-    return { error: `No peer found for @${handle}` }
-  }
+  const peer = peers.find(candidate =>
+    candidate.handle.toLowerCase() === handle ||
+    candidate.identityKey.toLowerCase() === handle
+  )
 
   const remainder = remainderRaw?.trim() ?? ''
   const parsed: ParsedCommand = {
     command,
-    peer,
+    handle,
     rawInput: trimmed
+  }
+
+  if (peer != null) {
+    parsed.peer = peer
   }
 
   if (command === 'pay') {

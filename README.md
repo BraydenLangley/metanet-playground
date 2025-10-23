@@ -1,90 +1,103 @@
-# Metanet Playground
+# Peer Actions Command Kit
 
-A simple web application for experimenting with identity mentions and instant payments on the BSV blockchain. Built with React and powered by the BSV SDK, this playground demonstrates the potential of blockchain-based social interactions and micropayments.
+The Peer Actions Command Kit packages a fully featured React component for searching MetaNet identities with `@` mentions and triggering familiar slash commands. It also ships with a demo front-end that showcases `/pay`, `/message`, and `/chat` flows wired to the [`@bsv/message-box-client`](https://www.npmjs.com/package/@bsv/message-box-client) API surface.
 
-## 🚀 Features
+## ✨ Highlights
 
-- **Identity Mentions**: Type `@` to search and mention any identity on the BSV network
-- **Instant Payments**: Use `/pay @user` to send BSV payments directly through the interface
-- **Real-time Search**: Optimized identity search with intelligent caching
-- **Beautiful UI**: Modern, responsive design with dark/light mode support
-- **Blockchain Integration**: Direct integration with BSV blockchain through message box client
+- **Installable component** – Import `PeerCommandPalette` and drop it into any React 18 + Tailwind project.
+- **Command parsing** – Built-in parser for `/pay`, `/message`, and `/chat` including mention resolution and optional payloads.
+- **Peer directory search** – Type `@` to filter peers by handle or display name, complete with keyboard-friendly quick inserts.
+- **Action wiring** – Uses the `PeerPayClient` interface to send payments, direct messages, and live chat events.
+- **Demo sandbox** – Explore the experience locally with mocked network calls that mimic the real client contract.
 
-## 🛠 Technology Stack
+## 📦 Getting started
 
-This project is built with modern web technologies and BSV blockchain integration:
-
-- **Frontend Framework**: React 18 with TypeScript
-- **Build Tool**: Vite for fast development and building
-- **UI Components**: shadcn/ui component library
-- **Styling**: Tailwind CSS with custom design system
-- **BSV Integration**: 
-  - `@bsv/sdk` - Core BSV blockchain functionality
-  - `@bsv/message-box-client` - Payment and messaging capabilities
-  - `@bsv/identity-react` - Identity resolution and management
-  - `@bsv/uhrp-react` - UHRP protocol support
-- **State Management**: React Query for server state
-- **Routing**: React Router for navigation
-
-## 🎮 How to Use
-
-1. **Mention Identities**: Type `@` followed by a name or key to search for BSV identities
-2. **Send Payments**: Use the command `/pay @username` to initiate a payment
-3. **Interactive UI**: Click on search results to select identities or confirm payments
-4. **Amount Selection**: Choose from quick amounts (100, 500, 1000, 5000 sats) or enter custom amounts
-
-## 🏃‍♂️ Development Setup
-
-### Prerequisites
-- Node.js (recommended: install with [nvm](https://github.com/nvm-sh/nvm#installing-and-updating))
-- npm or yarn package manager
-
-### Getting Started
-
-```sh
-# Clone the repository
-git clone <YOUR_GIT_URL>
-
-# Navigate to project directory
-cd metanet-playground
-
-# Install dependencies
+```bash
+# install dependencies
 npm install
 
-# Start development server
+# run the interactive demo
 npm run dev
 ```
 
-The application will be available at `http://localhost:8080` with hot-reloading enabled.
+Open the dev server (Vite defaults to <http://localhost:5173>) to try the component. The demo uses a simulated `PeerPayClient` that returns success responses without touching the network, making it safe to explore.
 
-## 📦 Project Structure
+## 🧱 Component usage
+
+```tsx
+import { PeerCommandPalette, type PeerProfile } from 'peer-actions-command-kit'
+import { PeerPayClient } from '@bsv/message-box-client'
+import { WalletClient } from '@bsv/sdk'
+
+const peers: PeerProfile[] = [
+  {
+    identityKey: '0281cf5d2234chance',
+    handle: 'chance',
+    displayName: 'Chance',
+    tagline: 'PeerPay pioneer and Metanet explorer'
+  }
+]
+
+const client = new PeerPayClient({ walletClient: new WalletClient() })
+
+export function App () {
+  return (
+    <PeerCommandPalette
+      peers={peers}
+      client={client}
+      defaultPaymentAmount={750}
+      onCommandComplete={result => console.log(result)}
+    />
+  )
+}
+```
+
+### Supported commands
+
+| Command            | Description                                                                                     |
+| ------------------ | ----------------------------------------------------------------------------------------------- |
+| `/pay @alice 500`  | Sends 500 sats to `@alice` using `PeerPayClient.sendPayment`. Optional trailing text is recorded. |
+| `/message @bob hi` | Sends a direct message via `sendMessage` in the `direct_messages` box.                           |
+| `/chat @ty`        | Starts a live chat room using `sendLiveMessage` against the `live_chat` box.                     |
+
+When an amount or message body is omitted, the component falls back to configurable defaults (`defaultPaymentAmount`, `defaultMessageText`, and `defaultChatText`).
+
+### Props
+
+| Prop                   | Type                                      | Default | Description                                                                                       |
+| ---------------------- | ----------------------------------------- | ------- | ------------------------------------------------------------------------------------------------- |
+| `peers`                | `PeerProfile[]`                           | —       | Directory records displayed in mention suggestions.                                               |
+| `client`               | `PeerActionClient`                        | —       | Object implementing `PeerPayClient` methods (`init`, `sendPayment`, `sendMessage`, `sendLiveMessage`). |
+| `defaultPaymentAmount` | `number`                                  | `500`   | Amount of sats used when `/pay` does not specify a value.                                         |
+| `defaultMessageText`   | `string`                                  | `Hey there! Let's build something on BSV together.` | Fallback text for `/message`.                                                  |
+| `defaultChatText`      | `string`                                  | `Live chat initiated – say hello!`         | Fallback text for `/chat`.                                                     |
+| `onCommandComplete`    | `(result: CommandExecutionResult) => void`| —       | Callback fired after each action (success or failure).                                            |
+| `className`            | `string`                                  | —       | Optional additional styles for the root container.                                                |
+
+## 🧪 Demo front-end
+
+The `src/App.tsx` implementation showcases a polished UX around the shared component:
+
+- Live metrics for executed payments, messages, and chats
+- Activity feed reusing `CommandExecutionResult` objects
+- Mock `PeerPayClient` subclass that mimics payments/messages/chats with slight delays
+
+Feel free to replace `DemoPeerActionClient` with a real `PeerPayClient` + configured wallet to connect to live infrastructure.
+
+## 🗂️ Project structure
 
 ```
 src/
-├── components/          # Reusable UI components
-│   ├── ui/             # shadcn/ui components
-│   ├── MentionTextArea.tsx    # Main interaction component
-│   ├── PaymentAmountDialog.tsx # Payment amount input
-│   └── PaymentForm.tsx        # Payment processing form
-├── contexts/           # React contexts
-│   └── MetanetPlaygroundContext.tsx # BSV client management
-├── hooks/              # Custom React hooks
-│   ├── use-optimized-search.ts # Identity search with caching
-│   └── use-toast.ts           # Toast notifications
-├── lib/                # Utility libraries
-│   ├── search-cache.ts # Search result caching
-│   └── utils.ts        # General utilities
-├── pages/              # Page components
-│   ├── Index.tsx       # Main playground interface
-│   └── NotFound.tsx    # 404 page
-└── types/              # TypeScript type definitions
-    └── identity.ts     # Identity-related types
+├── App.tsx                  # Demo application wiring
+├── index.css                # Tailwind theme + component styling helpers
+├── lib/
+│   ├── index.ts             # Public exports
+│   └── peer-command/
+│       ├── parser.ts        # Slash command parser utilities
+│       ├── PeerCommandPalette.tsx  # Reusable command component
+│       └── types.ts         # Shared types for peers, history, and client contract
+└── main.tsx                 # Vite entry point
 ```
-
-## 🔗 Links
-
-- **BSV Documentation**: https://docs.bsv.tools/
-- **Lovable Docs**: https://docs.lovable.dev/
 
 ## 📝 License
 

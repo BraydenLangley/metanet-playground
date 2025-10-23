@@ -2,155 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
-/* BSV Identity Search - Design System */
-
 @layer base {
   :root {
-    /* Dark blockchain-inspired theme */
-    --background: 224 15% 8%;
-    --foreground: 220 15% 95%;
-
-    --card: 224 15% 10%;
-    --card-foreground: 220 15% 95%;
-
-    --popover: 224 15% 12%;
-    --popover-foreground: 220 15% 95%;
-
-    /* Purple-blue primary inspired by blockchain/tech */
-    --primary: 262 80% 60%;
-    --primary-foreground: 220 15% 95%;
-    --primary-glow: 262 80% 70%;
-
-    --secondary: 224 15% 18%;
-    --secondary-foreground: 220 15% 95%;
-
-    --muted: 224 15% 15%;
-    --muted-foreground: 220 10% 65%;
-
-    --accent: 224 15% 20%;
-    --accent-foreground: 220 15% 95%;
-
-    --destructive: 0 75% 60%;
-    --destructive-foreground: 220 15% 95%;
-
-    --border: 224 15% 22%;
-    --input: 224 15% 15%;
-    --ring: 262 80% 60%;
-
-    --radius: 0.75rem;
-
-    /* Custom design tokens */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-    --gradient-background: linear-gradient(180deg, hsl(224 15% 8%), hsl(224 15% 6%));
-    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.2);
-    --shadow-card: 0 10px 30px -10px hsl(224 15% 4% / 0.5);
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-    /* Search specific tokens */
-    --search-highlight: 262 80% 70%;
-    --search-result-hover: 224 15% 18%;
-    --performance-text: 220 10% 55%;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    color-scheme: dark;
   }
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border;
+  html {
+    @apply h-full;
   }
 
-  
-  html, body, #root {
-    height: 100vh;
-    height: 100dvh;
-    overflow: hidden;
-    position: fixed;
-    width: 100%;
-    top: 0;
-    left: 0;
-  }
-  
   body {
-    @apply bg-background text-foreground;
-    background: var(--gradient-background);
-    min-height: 100vh;
-    min-height: 100dvh;
-    position: fixed;
-    width: 100%;
-    overflow: hidden;
+    @apply min-h-full bg-slate-950 text-slate-100 antialiased;
+    background-image: radial-gradient(circle at top, rgba(148, 163, 255, 0.35), transparent 55%),
+      radial-gradient(circle at 20% 20%, rgba(45, 212, 191, 0.2), transparent 50%),
+      radial-gradient(circle at 80% 0%, rgba(165, 180, 252, 0.25), transparent 60%);
+  }
+
+  body, #root {
+    @apply min-h-screen;
   }
 }
 
 @layer components {
-  .search-glow {
-    box-shadow: var(--shadow-glow);
+  .glass-panel {
+    @apply rounded-3xl border border-slate-800/80 bg-slate-900/70 backdrop-blur-xl shadow-xl;
   }
-  
-  .card-elevated {
-    box-shadow: var(--shadow-card);
-  }
-  
-  .transition-smooth {
-    transition: var(--transition-smooth);
-  }
-  
-  .gradient-text {
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+
+  .command-input {
+    @apply w-full rounded-2xl border border-slate-800 bg-slate-950/80 px-5 py-4 text-base font-medium text-slate-100 shadow-inner shadow-slate-900/40 transition focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/30;
   }
 }

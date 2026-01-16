@@ -7,7 +7,7 @@ import { useIdentitySearch } from '@bsv/identity-react'
 import type { CommandHistoryEntry, PeerProfile } from './lib'
 import { PeerCommandPalette } from './lib'
 
-const MESSAGE_BOX_HOST = 'http://messagebox.babbage.systems'
+const MESSAGE_BOX_HOST = 'https://messagebox.babbage.systems'
 
 const createClient = (): PeerPayClient => {
   const walletClient = new WalletClient('auto')
@@ -24,7 +24,7 @@ const sanitizeHandle = (base: string): string => {
   return normalized.length > 0 ? normalized : `peer_${Math.random().toString(36).slice(2, 8)}`
 }
 
-export default function App () {
+export default function App() {
   const [peers, setPeers] = useState<PeerProfile[]>([])
   const [activity, setActivity] = useState<CommandHistoryEntry[]>([])
   const [client] = useState<PeerPayClient>(() => createClient())

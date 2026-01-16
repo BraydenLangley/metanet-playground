@@ -15,7 +15,7 @@ import type {
 const DIRECT_MESSAGE_BOX = 'direct_messages'
 const CHAT_MESSAGE_BOX = 'live_chat'
 const PAYMENT_MESSAGE_BOX = 'payment_inbox'
-const DEFAULT_MESSAGE_BOX_HOST = 'http://messagebox.babbage.systems'
+const DEFAULT_MESSAGE_BOX_HOST = 'https://messagebox.babbage.systems'
 const MIN_MENTION_LENGTH = 2
 const SEARCH_DEBOUNCE_MS = 200
 
@@ -51,7 +51,7 @@ export interface PeerCommandPaletteProps {
   className?: string
 }
 
-export function PeerCommandPalette ({
+export function PeerCommandPalette({
   peers,
   client,
   defaultPaymentAmount = DEFAULT_PAYMENT_AMOUNT,
@@ -500,9 +500,9 @@ export function PeerCommandPalette ({
     return () => {
       disposed = true
       if (typeof client.leaveRoom === 'function') {
-        void client.leaveRoom(DIRECT_MESSAGE_BOX).catch(() => {})
-        void client.leaveRoom(CHAT_MESSAGE_BOX).catch(() => {})
-        void client.leaveRoom(PAYMENT_MESSAGE_BOX).catch(() => {})
+        void client.leaveRoom(DIRECT_MESSAGE_BOX).catch(() => { })
+        void client.leaveRoom(CHAT_MESSAGE_BOX).catch(() => { })
+        void client.leaveRoom(PAYMENT_MESSAGE_BOX).catch(() => { })
       }
     }
   }, [appendHistory, client, enableLiveListeners, ensureClientInitialised, inferPeerFromMessage, messageBoxHost, stringifyBody])

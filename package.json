@@ -11,9 +11,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@bsv/identity-react": "^1.1.7",
-    "@bsv/message-box-client": "^1.2.6",
-    "@bsv/sdk": "^1.6.24",
+    "@bsv/identity-react": "^1.1.10",
+    "@bsv/message-box-client": "^1.4.5",
+    "@bsv/sdk": "^1.10.1",
     "@bsv/uhrp-react": "^1.0.4",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.11",
@@ -85,6 +85,6 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
-    "vite": "^5.4.19"
+    "vite": "^7.3.1"
   }
 }

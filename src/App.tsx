@@ -5,7 +5,7 @@ import { WalletClient } from '@bsv/sdk'
 import { PeerPayClient } from '@bsv/message-box-client'
 import { useIdentitySearch } from '@bsv/identity-react'
 import type { CommandHistoryEntry, PeerProfile } from './lib'
-import { PeerCommandPalette } from './lib'
+import { PeerCommandPalette, CertificatePlayground } from './lib'
 
 const MESSAGE_BOX_HOST = 'https://messagebox.babbage.systems'
 
@@ -212,6 +212,8 @@ export default function App() {
           onCommandComplete={result => setActivity(previous => [result, ...previous])}
           messageBoxHost={MESSAGE_BOX_HOST}
         />
+
+        <CertificatePlayground />
 
         <section className="glass-panel px-8 py-8">
           <h2 className="text-xl font-semibold text-white">Command and live activity</h2>

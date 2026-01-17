@@ -8,3 +8,20 @@ export type {
   CommandExecutionResult,
   CommandHistoryEntry
 } from './peer-command/types'
+
+export { CertificatePlayground } from './certificate-playground'
+export type { CertificatePlaygroundProps } from './certificate-playground'
+export {
+  analyzeCertificateSize,
+  analyzeFullCertificate,
+  checkTransportFit,
+  generateOptimizations,
+  formatBytes,
+  TRANSPORT_CONSTRAINTS
+} from './certificate-playground'
+export type {
+  CertificateSizeAnalysis,
+  CertificateWithAnalysis,
+  OptimizationSuggestion,
+  TransportConstraints
+} from './certificate-playground'
